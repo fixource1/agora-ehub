@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "uplb/saliksik",
     "type": "project",
-    "description": "SALIKSIK - Shared Archive of Literature, Information, Knowledge, Studies, Insights, and Knowledge",
+    "description": "SALIKSIC - Scientific Archive of Literature, Information, Knowledge, Studies, Insights, and Collection",
     "keywords": [
         "laravel",
         "saliksik",

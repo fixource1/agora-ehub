@@ -195,7 +195,7 @@ const props = defineProps({
 
 const router = useRouter();
 
-const steps = ['Resource Details', 'Upload Files', 'Settings', 'Pricing', 'Review & Publish'];
+const steps = ['Resource Details', 'Upload Files', 'Settings', 'Review & Publish'];
 const resourceTypes = ref([]);
 const categories = ref([]);
 const saving = ref(false);

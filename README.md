@@ -1,15 +1,16 @@
-# SALIKSIK
+# SALIKSIC
 
-**S**hared **A**rchive of **L**iterature, **I**nformation, **K**nowledge, **S**tudies, **I**nsights, and **K**nowledge
+**S**cientific **A**rchive of **L**iterature, **I**nformation, **K**nowledge, **S**tudies, **I**nsights, and **C**ollection
 
-Offline-first digital knowledge repository for academic and research institutions. Not an e-commerce platform — no purchases or payments.
+Offline-first digital knowledge repository for UPLB OVCRE and academic institutions.
 
 ## Stack
 
 - Laravel 13
 - Filament 5 (admin panel)
-- Vue 3 + Pinia + Vue Router (frontend SPA)
+- Vue 3 + Pinia + Vue Router (reader app + author web portal)
 - MySQL 8.4 + Redis 7 (Docker)
+- Laravel Sanctum (API auth for author portal and future NativePHP sync)
 - Laravel Boost (MCP + AI guidelines)
 
 ## Quick Start (Docker)
@@ -38,7 +39,8 @@ npm install && npm run build
 
 Open:
 
-- **Web app:** http://localhost:8080
+- **Reader app:** http://localhost:8080
+- **Author portal:** http://localhost:8080/author
 - **Admin panel:** http://localhost:8080/admin
 - **Vite dev:** http://localhost:5173 (with `dev` profile)
 
@@ -82,7 +84,8 @@ app/
   Http/Controllers/Api/V1/
   Models/             # Eloquent models
 database/migrations/  # Normalized schema from UPLB AGORA spec
-resources/js/         # Vue SPA (library, reader, discover)
+resources/js/         # Vue reader SPA (library, discover, profile)
+resources/js/web/     # Vue author portal (login, dashboard, resource CRUD)
 docker/               # PHP, Nginx configs
 ```
 
@@ -100,18 +103,26 @@ The schema extends the UPLB AGORA Excel structure with:
 
 ## API (v1)
 
+Public:
+
 - `GET /api/v1/resources` — list published resources
 - `GET /api/v1/resources/{slug}` — resource detail
+
+Authenticated (Sanctum):
+
+- `POST /api/v1/auth/login` — author/admin login
+- `GET /api/v1/my/resources` — contributor resource CRUD
+- `GET /api/v1/lookups/categories` — form lookups
+- `GET /api/v1/lookups/resource-types` — form lookups
 
 ## Responsive UI
 
 | Viewport | Experience |
 |----------|------------|
-| Phone (`< 768px`) | Bottom nav, slide-out library drawer, stacked pages |
-| Tablet (`≥ 768px`) | Persistent sidebar, 4–5 column library grid |
-| Large tablet (`≥ 1024px`) | 3-column resource detail, 3-pane reader (TOC + content + appearance) |
-
-Preview tablet: open http://localhost:8080/library and set browser width to ~1024px.
+| Phone | Bottom nav, slide-out library drawer |
+| Tablet portrait | Full-width reader layout with drawer navigation |
+| Tablet landscape | Persistent library sidebar + bottom nav |
+| Author portal | Desktop web dashboard at `/author` |
 
 ## NativePHP (Mobile)
 

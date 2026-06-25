@@ -1,4 +1,4 @@
-# NativePHP for SALIKSIK
+# NativePHP for SALIKSIC
 
 NativePHP Mobile is **installed** (`nativephp/mobile ^3.3`). The Laravel package, config, and offline download API are ready. Native Android project files must be generated from **Windows CMD** (not WSL).
 
