@@ -425,10 +425,10 @@ return [
             'landscape_right' => false,
         ],
         'android' => [
-            'portrait' => true,
+            'portrait' => false,
             'upside_down' => false,
-            'landscape_left' => false,
-            'landscape_right' => false,
+            'landscape_left' => true,
+            'landscape_right' => true,
         ],
     ],
 ];

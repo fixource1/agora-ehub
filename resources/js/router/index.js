@@ -1,4 +1,9 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
+
+/**
+ * Hash history keeps in-app navigation inside the WebView. NativePHP's Android
+ * WebView reloads the whole Laravel shell for path-based URLs like /resources/foo.
+ */
 
 const routes = [
     { path: '/', redirect: '/home' },
@@ -10,7 +15,7 @@ const routes = [
 ];
 
 export default createRouter({
-    history: createWebHistory(),
+    history: createWebHashHistory(),
     routes,
     scrollBehavior(to, from, savedPosition) {
         if (savedPosition) {

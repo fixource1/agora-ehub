@@ -28,7 +28,10 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->index(['status', 'published_at']);
-            $table->fullText(['title', 'subtitle', 'description']);
+
+            if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+                $table->fullText(['title', 'subtitle', 'description']);
+            }
         });
     }
 

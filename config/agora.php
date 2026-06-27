@@ -1,0 +1,22 @@
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mobile remote API (NativePHP)
+    |--------------------------------------------------------------------------
+    |
+    | When enabled on Android/iOS, the Vue app calls this base URL instead of
+    | the embedded Laravel API. On WSL2, the emulator often reaches Docker via the
+    | WSL IP (e.g. http://172.x.x.x:8080) rather than 10.0.2.2. Run
+    | scripts/setup-android-api-access.cmd before building to auto-detect.
+    |
+    */
+
+    'mobile_api' => [
+        'enabled' => (bool) env('MOBILE_API_ENABLED', false),
+        'base_url' => env('MOBILE_API_BASE_URL'),
+    ],
+
+];

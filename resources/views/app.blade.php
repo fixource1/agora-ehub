@@ -12,7 +12,14 @@
         <title>{{ config('app.name', 'AGORA e-Hub') }}</title>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="antialiased">
+    <body class="antialiased nativephp-safe-area">
+        <script>
+            window.__AGORA__ = {
+                mobileApiEnabled: @json((bool) config('agora.mobile_api.enabled')),
+                mobileApiBaseUrl: @json(config('agora.mobile_api.base_url')),
+                nativePlatform: @json(env('NATIVEPHP_PLATFORM')),
+            };
+        </script>
         <div id="app"></div>
     </body>
 </html>

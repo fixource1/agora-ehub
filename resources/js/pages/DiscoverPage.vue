@@ -1,6 +1,6 @@
 <template>
     <AppShell>
-        <div class="discover-main tablet-sidebar:flex tablet-sidebar:h-[100dvh] tablet-sidebar:max-h-[100dvh] tablet-sidebar:flex-col tablet-sidebar:overflow-hidden">
+        <div class="discover-main flex min-h-0 flex-1 flex-col tablet-sidebar:overflow-hidden">
             <MobileTopBar
                 class="tablet-sidebar:hidden"
                 title="Discover"
@@ -9,7 +9,7 @@
                 @search="focusSearch"
             />
 
-            <header class="bg-surface border-app hidden shrink-0 border-b px-4 py-4 tablet-sidebar:block lg:px-6 lg:py-5 xl:px-8 xl:py-6">
+            <header class="bg-surface border-app safe-top hidden shrink-0 border-b px-4 pb-4 pt-1 tablet-sidebar:block lg:px-6 lg:pb-5 xl:px-8 xl:py-6">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div class="min-w-0">
                         <h1 class="text-app text-2xl font-bold lg:text-3xl">Discover</h1>

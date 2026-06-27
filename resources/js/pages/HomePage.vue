@@ -71,7 +71,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import AppShell from '@/layouts/AppShell.vue';
 import HomeHeader from '@/components/layout/HomeHeader.vue';
@@ -80,6 +80,7 @@ import HomeStatsSkeleton from '@/components/skeleton/HomeStatsSkeleton.vue';
 import LoadErrorBanner from '@/components/ui/LoadErrorBanner.vue';
 import { useDelayedLoading } from '@/composables/useDelayedLoading';
 import { useLibrary } from '@/composables/useLibrary';
+import { getAllOfflineResources } from '@/composables/useOfflineStore';
 import { useResourcesList } from '@/composables/useResourcesList';
 import { APP_HERO_HEADLINE, APP_TAGLINE } from '@/constants/brand';
 
@@ -87,12 +88,19 @@ const router = useRouter();
 const library = useLibrary();
 const { resources, loading, error, load, retry } = useResourcesList();
 const { showSkeleton } = useDelayedLoading(loading);
+const offlineOnlyResources = ref([]);
 
 const continueReading = computed(() => library.filterBySection([...resources.value]).slice(0, 8));
 
-const offlineResources = computed(() =>
-    resources.value.filter((resource) => library.isDownloaded(resource.slug)).slice(0, 8),
-);
+const offlineResources = computed(() => {
+    if (offlineOnlyResources.value.length > 0) {
+        return offlineOnlyResources.value.slice(0, 8);
+    }
+
+    return resources.value
+        .filter((resource) => library.isDownloaded(resource.slug))
+        .slice(0, 8);
+});
 
 const recentlyAdded = computed(() =>
     [...resources.value]
@@ -105,5 +113,12 @@ function openLibrary(section) {
     router.push('/library');
 }
 
-onMounted(() => load());
+onMounted(async () => {
+    await Promise.all([
+        load(),
+        getAllOfflineResources().then((items) => {
+            offlineOnlyResources.value = items;
+        }),
+    ]);
+});
 </script>

@@ -1,6 +1,6 @@
 <template>
     <div>
-        <slot name="toolbar" :layout="layout" />
+        <slot v-if="showToolbar" name="toolbar" :layout="layout" />
 
         <ResourceCollectionSkeleton v-if="loading" />
 
@@ -43,6 +43,7 @@ defineProps({
     resources: { type: Array, required: true },
     loading: { type: Boolean, default: false },
     offline: { type: Function, default: null },
+    showToolbar: { type: Boolean, default: true },
 });
 
 const { layout, layoutClass } = useResourceLayout();

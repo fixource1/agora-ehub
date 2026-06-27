@@ -1,6 +1,6 @@
 import { reactive } from 'vue';
+import { getDownloadedSlugs, hydrateLegacyDownloadSlugs } from '@/composables/useOfflineStore';
 
-const DOWNLOADS_STORAGE_KEY = 'agora-downloaded-slugs';
 const BOOKMARKS_STORAGE_KEY = 'agora-bookmark-slugs';
 const COLLECTIONS_STORAGE_KEY = 'agora-collection-members';
 const COLLECTIONS_LIST_STORAGE_KEY = 'agora-collections';
@@ -27,24 +27,6 @@ const DEFAULT_COLLECTION_MEMBERS = {
     3: ['research-proposal-writing-for-ovcre', 'technology-transfer-and-commercialization-primer', 'introduction-to-uplb-ovcre-services'],
     4: ['uplb-research-ethics-review-protocol'],
 };
-
-function loadDownloadedSlugs() {
-    try {
-        const stored = localStorage.getItem(DOWNLOADS_STORAGE_KEY);
-
-        if (stored) {
-            const slugs = JSON.parse(stored);
-
-            if (Array.isArray(slugs)) {
-                return new Set(slugs);
-            }
-        }
-    } catch {
-        // Ignore malformed storage.
-    }
-
-    return new Set();
-}
 
 function loadBookmarkSlugs() {
     try {
@@ -87,10 +69,6 @@ function loadCollectionMembers() {
     return Object.fromEntries(
         Object.entries(DEFAULT_COLLECTION_MEMBERS).map(([id, slugs]) => [String(id), new Set(slugs)]),
     );
-}
-
-function persistDownloadedSlugs(slugs) {
-    localStorage.setItem(DOWNLOADS_STORAGE_KEY, JSON.stringify([...slugs]));
 }
 
 function persistBookmarkSlugs(slugs) {
@@ -144,7 +122,7 @@ const state = reactive({
         bookmarks: 0,
     },
     collections: loadCollections(),
-    downloadedSlugs: loadDownloadedSlugs(),
+    downloadedSlugs: new Set(),
     bookmarkSlugs: loadBookmarkSlugs(),
     collectionMembers: loadCollectionMembers(),
     noteSlugs: new Set([
@@ -230,13 +208,11 @@ export function useLibrary() {
 
     function markDownloaded(slug) {
         state.downloadedSlugs.add(slug);
-        persistDownloadedSlugs(state.downloadedSlugs);
         updateCounts();
     }
 
     function unmarkDownloaded(slug) {
         state.downloadedSlugs.delete(slug);
-        persistDownloadedSlugs(state.downloadedSlugs);
         updateCounts();
     }
 
@@ -291,17 +267,37 @@ export function useLibrary() {
 
     async function syncDownloads() {
         try {
-            const { data } = await window.axios.get('/api/v1/downloads');
+            const { data } = await window.axios.get('/downloads');
             const slugs = (data.data ?? [])
                 .map((download) => download.resource?.slug)
                 .filter(Boolean);
 
-            state.downloadedSlugs = new Set(slugs);
-            persistDownloadedSlugs(state.downloadedSlugs);
+            for (const slug of slugs) {
+                if (state.downloadedSlugs.has(slug)) {
+                    continue;
+                }
+
+                state.downloadedSlugs.add(slug);
+            }
+
             updateCounts();
         } catch {
             updateCounts();
         }
+    }
+
+    async function hydrateDownloads() {
+        const slugs = await getDownloadedSlugs();
+        state.downloadedSlugs = new Set(slugs);
+        updateCounts();
+
+        const legacySlugs = await hydrateLegacyDownloadSlugs();
+
+        for (const slug of legacySlugs) {
+            state.downloadedSlugs.delete(slug);
+        }
+
+        updateCounts();
     }
 
     function filterBySection(resources) {
@@ -356,6 +352,7 @@ export function useLibrary() {
         markDownloaded,
         unmarkDownloaded,
         syncDownloads,
+        hydrateDownloads,
         toggleBookmark,
         isBookmarked,
         isInCollection,

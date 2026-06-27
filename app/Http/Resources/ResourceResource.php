@@ -50,12 +50,14 @@ class ResourceResource extends JsonResource
                 'file_type' => $file->file_type,
                 'file_size' => $file->file_size,
                 'is_primary' => $file->is_primary,
+                'download_url' => "/api/v1/resources/{$this->slug}/files/{$file->id}/download",
             ])),
             'primary_file' => $primaryFile ? [
                 'id' => $primaryFile->id,
                 'file_name' => $primaryFile->file_name,
                 'file_type' => $primaryFile->file_type,
                 'file_size' => $primaryFile->file_size,
+                'download_url' => "/api/v1/resources/{$this->slug}/files/{$primaryFile->id}/download",
             ] : null,
         ];
     }

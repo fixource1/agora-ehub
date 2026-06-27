@@ -4,9 +4,10 @@
             <div class="home-header-lockup flex items-center">
                 <div class="home-header-institution shrink-0">
                     <img
-                        :src="UP_SEAL_SRC"
+                        :src="sealSrc"
                         :alt="UP_SEAL_ALT"
                         class="home-header-seal h-11 w-11 object-contain sm:h-12 sm:w-12 md:h-14 md:w-14"
+                        @error="onSealError"
                     >
                 </div>
 
@@ -35,6 +36,18 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import BrandLogo from '@/components/brand/BrandLogo.vue';
 import { APP_NAME, APP_TAGLINE_SHORT, UP_SEAL_ALT, UP_SEAL_SRC } from '@/constants/brand';
+
+const sealSrc = ref(UP_SEAL_SRC);
+const sealFallbacks = ['/brand/UP%20Seal.png'];
+
+function onSealError() {
+    const next = sealFallbacks.shift();
+
+    if (next) {
+        sealSrc.value = next;
+    }
+}
 </script>

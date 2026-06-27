@@ -1,22 +1,19 @@
 <template>
     <RouterLink
         :to="{ name: 'resource.show', params: { slug: resource.slug }, state: { resource } }"
-        class="resource-card border-app bg-surface group relative flex flex-col overflow-hidden rounded-xl border transition hover:shadow-md"
+        draggable="false"
+        class="resource-card tap-feedback border-app bg-surface group relative flex flex-col overflow-hidden rounded-xl border transition hover:shadow-md"
+        :class="longPress.pressClass"
+        v-bind="longPress.handlers"
         @mouseenter="prefetchResource(resource.slug)"
-        @pointerdown="longPress.onPointerdown"
-        @pointerup="longPress.onPointerup"
-        @pointerleave="longPress.onPointerleave"
-        @pointercancel="longPress.onPointercancel"
-        @pointermove="longPress.onPointermove"
-        @click="longPress.onClick"
-        @contextmenu.prevent="openQuickActions(resource)"
     >
         <div class="resource-card-cover relative aspect-[3/4] shrink-0 overflow-hidden">
             <img
-                v-if="hasCover"
+                v-if="showCoverImage"
                 :src="resource.cover_image"
                 :alt="resource.title"
                 class="absolute inset-0 h-full w-full object-cover object-top transition duration-300 group-hover:scale-[1.02]"
+                @error="coverImageFailed = true"
             >
             <ResourceGeneratedCover
                 v-else
@@ -30,7 +27,7 @@
             />
 
             <div
-                v-if="isVideo && hasCover"
+                v-if="isVideo && showCoverImage"
                 class="absolute inset-0 z-10 flex items-center justify-center bg-black/15"
             >
                 <div class="bg-surface/95 text-brand flex h-9 w-9 items-center justify-center rounded-full shadow-sm">
@@ -71,7 +68,7 @@
 </template>
 
 <script setup>
-import { computed, toRef } from 'vue';
+import { computed, ref, toRef, watch } from 'vue';
 import IconCheck from '@/components/icons/IconCheck.vue';
 import IconPlay from '@/components/icons/IconPlay.vue';
 import ResourceGeneratedCover from '@/components/resources/ResourceGeneratedCover.vue';
@@ -91,5 +88,23 @@ const longPress = useLongPress(() => openQuickActions(props.resource));
 
 const resourceRef = toRef(props, 'resource');
 const { isVideo, typeIcon, fileTypeLabel, metaLabel, duration } = useResourceMeta(resourceRef);
-const hasCover = computed(() => Boolean(props.resource.cover_image));
+const coverImageFailed = ref(false);
+
+watch(() => props.resource.cover_image, () => {
+    coverImageFailed.value = false;
+});
+
+const showCoverImage = computed(() => {
+    if (coverImageFailed.value) {
+        return false;
+    }
+
+    const cover = props.resource.cover_image;
+
+    if (props.resource.offline_available) {
+        return typeof cover === 'string' && cover.startsWith('blob:');
+    }
+
+    return Boolean(cover);
+});
 </script>

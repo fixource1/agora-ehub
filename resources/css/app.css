@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './fonts.css';
 @import './skeleton.css';
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -12,8 +13,8 @@
 
 /* UPLB Forest Green brand palette */
 @theme {
-    --font-sans: Avenir, 'Avenir Next', 'Segoe UI', 'Helvetica Neue', sans-serif;
-    --font-display: Optima, 'Optima Nova', Candara, 'Segoe UI', 'Helvetica Neue', sans-serif;
+    --font-sans: 'Agora Sans', 'Nunito Sans', 'Segoe UI', 'Helvetica Neue', sans-serif;
+    --font-display: 'Agora Display', 'Quattrocento Sans', Candara, 'Segoe UI', 'Helvetica Neue', sans-serif;
     --font-serif: 'Georgia', 'Times New Roman', serif;
 
     --color-brand-maroon: #8D1436;
@@ -88,11 +89,38 @@ html, body, #app, #web-app {
     -webkit-tap-highlight-color: transparent;
 }
 
+html.native-app,
+html.native-app body {
+    height: 100%;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+html.native-app #app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
+
+html.native-app .app-router-root {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
 body {
     overscroll-behavior-y: none;
     background: var(--app-bg);
     color: var(--app-text);
     font-family: var(--font-sans);
+}
+
+/* NativePHP injects padding on this class — we apply insets per header/sidebar instead */
+body.nativephp-safe-area {
+    padding: 0 !important;
 }
 
 .font-display,
@@ -126,6 +154,26 @@ h6 {
     color: var(--app-muted);
 }
 
+.library-nav-item {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.14s ease-out, filter 0.14s ease-out;
+}
+
+.library-nav-item:not(.bg-brand):active,
+.library-nav-item:not(.bg-brand).is-touch-pressed {
+    background-color: var(--app-surface-muted);
+    transition-duration: 0s;
+}
+
+.library-nav-item.bg-brand:active,
+.library-nav-item.bg-brand.is-touch-pressed {
+    filter: brightness(0.94);
+    transition-duration: 0s;
+}
+
 .library-collections-add {
     display: inline-flex;
     height: 1.5rem;
@@ -137,7 +185,7 @@ h6 {
     color: var(--app-nav-active-text);
     background-color: var(--app-surface);
     box-shadow: 0 0 0 1px var(--app-border);
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: background-color 0.14s ease-out, color 0.14s ease-out;
 }
 
 .library-collections-add:hover {
@@ -148,6 +196,13 @@ h6 {
 .library-collections-add:focus-visible {
     outline: 2px solid color-mix(in srgb, var(--app-brand) 40%, transparent);
     outline-offset: 2px;
+}
+
+.library-collections-add:active,
+.library-collections-add.is-touch-pressed {
+    background-color: var(--app-surface-muted);
+    color: var(--app-brand);
+    transition-duration: 0s;
 }
 
 .collection-modal-input {
@@ -180,7 +235,21 @@ h6 {
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
     font-weight: 500;
-    transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: background-color 0.14s ease-out, color 0.14s ease-out, opacity 0.14s ease-out;
+}
+
+.collection-modal-button--secondary:active,
+.collection-modal-button--secondary.is-touch-pressed {
+    background-color: color-mix(in srgb, var(--app-surface-muted) 80%, var(--app-border));
+    transition-duration: 0s;
+}
+
+.collection-modal-button--primary:active:not(:disabled),
+.collection-modal-button--primary.is-touch-pressed:not(:disabled) {
+    background-color: color-mix(in srgb, var(--app-brand) 82%, #000);
+    transition-duration: 0s;
 }
 
 .collection-modal-button--secondary {
@@ -209,15 +278,94 @@ h6 {
 .divide-app > :not(:last-child) { border-color: var(--app-border); }
 
 .safe-top {
-    padding-top: max(env(safe-area-inset-top), 1rem);
+    padding-top: max(calc(var(--inset-top, env(safe-area-inset-top, 0px)) + 0.5rem), 1rem);
 }
 
 .safe-bottom {
-    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+    padding-bottom: max(var(--inset-bottom, env(safe-area-inset-bottom, 0px)), 0.5rem);
+}
+
+.app-shell {
+    display: flex;
+    min-height: 100dvh;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+html.native-app .app-shell {
+    height: 100%;
+    min-height: 0;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+.app-shell__main {
+    display: flex;
+    min-height: 0;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+}
+
+.app-shell__main > .library-page-root {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.library-page-root {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.library-page-layout {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.library-sidebar-shell {
+    display: none;
+    min-height: 0;
+    flex-shrink: 0;
+    align-self: stretch;
+    overflow: hidden;
+}
+
+.library-main-panel {
+    display: flex;
+    min-height: 0;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.library-fixed-chrome {
+    flex-shrink: 0;
+}
+
+.library-content-chrome {
+    padding-bottom: 0;
+}
+
+.library-scroll-region {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    container-type: inline-size;
+    container-name: resource-panel;
 }
 
 .page-content {
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(6.25rem + var(--inset-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem);
 }
 
 @media (min-width: 768px) {
@@ -227,7 +375,17 @@ h6 {
 }
 
 .page-content-no-nav {
-    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(1.5rem + var(--inset-bottom, env(safe-area-inset-bottom, 0px)));
+}
+
+.pb-page-nav {
+    padding-bottom: calc(6.25rem + var(--inset-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem);
+}
+
+@media (min-width: 768px) {
+    .pb-page-nav {
+        padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+    }
 }
 
 .library-scroll,
@@ -236,36 +394,52 @@ h6 {
     container-name: resource-panel;
 }
 
+.library-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
 @media (min-width: 768px) and (orientation: landscape) {
-    .tablet-main {
-        height: 100dvh;
-        max-height: 100dvh;
+    .library-page-layout {
+        flex: 1;
+        min-height: 0;
+        flex-direction: row;
+        overflow: hidden;
+    }
+
+    .library-sidebar-shell {
+        display: flex;
+        min-height: 100%;
+        flex-direction: column;
+        align-self: stretch;
         overflow: hidden;
     }
 
     .library-sidebar {
-        height: 100%;
-        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+        min-height: 0;
+        flex: 1 1 auto;
     }
 
-    .library-scroll {
-        padding-inline: 2px;
-        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
-        -webkit-overflow-scrolling: touch;
+    .library-scroll-region {
+        padding-bottom: calc(5.75rem + var(--inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
 
-    .page-content.tablet-sidebar\:flex {
+    .library-content-chrome {
         padding-bottom: 0;
     }
 
+    .pb-page-nav {
+        padding-bottom: calc(5.75rem + var(--inset-bottom, env(safe-area-inset-bottom, 0px)));
+    }
+
     .discover-main {
-        height: 100dvh;
-        max-height: 100dvh;
+        flex: 1;
+        min-height: 0;
         overflow: hidden;
     }
 
     .discover-scroll {
-        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+        padding-bottom: calc(5.75rem + var(--inset-bottom, env(safe-area-inset-bottom, 0px)));
         -webkit-overflow-scrolling: touch;
     }
 }
@@ -274,9 +448,9 @@ h6 {
 .app-bottom-nav-bar {
     width: 100%;
     padding-top: 0.5rem;
-    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-bottom: max(1.25rem, calc(var(--inset-bottom, env(safe-area-inset-bottom, 0px)) + 0.75rem));
+    padding-left: max(1rem, var(--inset-left, env(safe-area-inset-left, 0px)));
+    padding-right: max(1rem, var(--inset-right, env(safe-area-inset-right, 0px)));
     border-top: 1px solid color-mix(in srgb, var(--app-border) 75%, transparent);
     background-color: color-mix(in srgb, var(--app-surface) 78%, transparent);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -647,7 +821,7 @@ h6 {
     max-width: 84%;
     text-align: center;
     color: #ffffff;
-    font-family: var(--font-display, Optima, 'Segoe UI', sans-serif);
+    font-family: var(--font-display, 'Agora Display', 'Segoe UI', sans-serif);
     font-size: 0.72rem;
     font-weight: 700;
     line-height: 1.35;
@@ -693,6 +867,7 @@ h6 {
     -webkit-touch-callout: none;
     touch-action: manipulation;
     user-select: none;
+    position: relative;
 }
 
 .resource-card-badge {
@@ -1456,7 +1631,7 @@ h6 {
     border-radius: 1rem;
     border: 1px solid var(--app-border);
     background-color: var(--app-surface);
-    padding: 0.375rem;
+    padding: 0.5rem 0.75rem;
     box-shadow: 0 20px 48px rgb(0 0 0 / 0.16);
 }
 
@@ -1469,6 +1644,7 @@ h6 {
     max-height: min(70vh, 28rem);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    padding: 0.625rem 1rem;
 }
 
 .action-menu__panel--right:not(.action-menu__panel--sheet) {
@@ -1477,7 +1653,7 @@ h6 {
 
 .action-menu__title {
     margin: 0;
-    padding: 0.625rem 0.75rem 0.375rem;
+    padding: 0.625rem 0.5rem 0.5rem;
     font-size: 0.8125rem;
     font-weight: 700;
     color: var(--app-text);
@@ -1492,19 +1668,21 @@ h6 {
     border: none;
     border-radius: 0.75rem;
     background: transparent;
-    padding: 0.75rem 0.875rem;
+    padding: 0.75rem 0.625rem;
     text-align: left;
     font-size: 0.9375rem;
     font-weight: 500;
     color: var(--app-text);
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.14s ease-out;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 }
 
-.action-menu__item:active {
+.action-menu__item:active,
+.action-menu__item.is-touch-pressed {
     background-color: var(--app-surface-muted);
+    transition-duration: 0s;
 }
 
 .action-menu__item:hover {
@@ -1617,5 +1795,87 @@ body.action-menu-open {
 @media (min-width: 1024px) {
     .app-toast {
         bottom: 2rem;
+    }
+}
+
+.tap-feedback {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    user-select: none;
+    transition: background-color 0.14s ease-out, filter 0.14s ease-out, opacity 0.14s ease-out, transform 0.14s ease-out;
+}
+
+.tap-feedback:active:not(:disabled):not(.bg-brand):not(.tap-feedback--long-pressing),
+.tap-feedback.is-touch-pressed:not(:disabled):not(.bg-brand):not(.tap-feedback--long-pressing) {
+    background-color: var(--app-surface-muted);
+    transition-duration: 0s;
+}
+
+.tap-feedback.bg-brand:active:not(:disabled):not(.tap-feedback--long-pressing),
+.tap-feedback.bg-brand.is-touch-pressed:not(:disabled):not(.tap-feedback--long-pressing) {
+    filter: brightness(0.94);
+    transition-duration: 0s;
+}
+
+.tap-feedback--icon {
+    transition: transform 0.14s ease-out, opacity 0.14s ease-out;
+}
+
+.tap-feedback--icon:active:not(:disabled),
+.tap-feedback--icon.is-touch-pressed:not(:disabled) {
+    transform: scale(0.96);
+    opacity: 0.88;
+    transition-duration: 0s;
+}
+
+.tap-feedback--long-pressing {
+    filter: brightness(0.94);
+    transition-duration: 0s;
+}
+
+.resource-card.tap-feedback:active:not(.tap-feedback--long-pressing),
+.resource-card.tap-feedback.is-touch-pressed:not(.tap-feedback--long-pressing),
+.resource-list-item.tap-feedback:active:not(.tap-feedback--long-pressing),
+.resource-list-item.tap-feedback.is-touch-pressed:not(.tap-feedback--long-pressing) {
+    filter: brightness(0.97);
+    transition-duration: 0s;
+}
+
+.app-bottom-nav-item {
+    transition: opacity 0.14s ease-out;
+}
+
+.app-bottom-nav-item:active:not(.app-bottom-nav-item--active),
+.app-bottom-nav-item.is-touch-pressed:not(.app-bottom-nav-item--active) {
+    opacity: 0.72;
+    transition-duration: 0s;
+}
+
+.app-bottom-nav-item--active:active,
+.app-bottom-nav-item--active.is-touch-pressed {
+    opacity: 0.88;
+    transition-duration: 0s;
+}
+
+.library-sidebar__brand-icon {
+    display: flex;
+    height: 2.5rem;
+    width: 2.5rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    background-color: var(--app-surface);
+    box-shadow: 0 0 0 1px var(--app-border);
+}
+
+.library-sidebar__collections {
+    padding-bottom: calc(5.5rem + var(--inset-bottom, env(safe-area-inset-bottom, 0px)));
+}
+
+@media (min-width: 768px) and (orientation: landscape) {
+    .library-sidebar__collections {
+        padding-bottom: calc(5.25rem + var(--inset-bottom, env(safe-area-inset-bottom, 0px)));
     }
 }

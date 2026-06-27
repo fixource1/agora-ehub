@@ -92,9 +92,18 @@
                                 {{ downloadButtonLabel }}
                             </button>
 
+                            <p
+                                v-if="downloadError"
+                                class="text-red-600 mt-3 text-center text-sm"
+                            >
+                                {{ downloadError }}
+                            </p>
+
                             <button
-                                class="bg-surface ring-app text-app mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 font-medium ring-1"
+                                class="bg-surface ring-app text-app mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 font-medium ring-1 disabled:cursor-not-allowed disabled:opacity-60"
                                 type="button"
+                                :disabled="! isOffline"
+                                @click="openOfflineFile"
                             >
                                 Open <span class="text-muted">▾</span>
                             </button>
@@ -230,6 +239,8 @@ import IconBookmark from '@/components/icons/IconBookmark.vue';
 import IconCheck from '@/components/icons/IconCheck.vue';
 import IconDownload from '@/components/icons/IconDownload.vue';
 import { useLibrary } from '@/composables/useLibrary';
+import { useOfflineDownload } from '@/composables/useOfflineDownload';
+import { getOfflineResource } from '@/composables/useOfflineStore';
 import { useResourceCache } from '@/composables/useResourceCache';
 import { useDelayedLoading } from '@/composables/useDelayedLoading';
 import { useResourceMeta } from '@/composables/useResourceMeta';
@@ -237,7 +248,8 @@ import { useResourceMeta } from '@/composables/useResourceMeta';
 const route = useRoute();
 const router = useRouter();
 const library = useLibrary();
-const { getResource, fetchResource, hasDetailData } = useResourceCache();
+const { downloadResource, removeDownload } = useOfflineDownload();
+const { getResource, fetchResource, hasDetailData, setResource } = useResourceCache();
 
 function resolveInitialResource(slug = route.params.slug) {
     const fromState = history.state?.resource;
@@ -260,6 +272,7 @@ const error = ref(null);
 const showFullDescription = ref(false);
 const downloading = ref(false);
 const downloadProgress = ref(0);
+const downloadError = ref('');
 let progressInterval = null;
 let downloadAbortController = null;
 const { typeIcon } = useResourceMeta(resource);
@@ -270,6 +283,24 @@ const { showSkeleton } = useDelayedLoading(needsSkeleton);
 async function loadResource(slug) {
     error.value = null;
     const cached = resolveInitialResource(slug);
+    const offline = await getOfflineResource(slug);
+
+    if (offline) {
+        resource.value = offline;
+        setResource(slug, offline);
+        library.markDownloaded(slug);
+        loading.value = false;
+
+        if (! hasDetailData(offline)) {
+            try {
+                resource.value = await fetchResource(slug);
+            } catch {
+                // Keep offline copy when the network is unavailable.
+            }
+        }
+
+        return;
+    }
 
     if (cached) {
         resource.value = cached;
@@ -393,12 +424,11 @@ async function removeOffline() {
         return;
     }
 
-    library.unmarkDownloaded(resource.value.slug);
-
     try {
-        await window.axios.delete(`/api/v1/downloads/${resource.value.slug}`);
+        await removeDownload(resource.value.slug);
+        downloadProgress.value = 0;
     } catch {
-        library.markDownloaded(resource.value.slug);
+        error.value = 'Could not remove this download. Try again.';
     }
 }
 
@@ -409,39 +439,43 @@ async function startDownload() {
 
     downloading.value = true;
     downloadProgress.value = 0;
+    downloadError.value = '';
     downloadAbortController = new AbortController();
 
-    progressInterval = window.setInterval(() => {
-        if (downloadProgress.value < 88) {
-            downloadProgress.value = Math.min(88, downloadProgress.value + 2 + Math.random() * 5);
-        }
-    }, 100);
-
     try {
-        await window.axios.post(
-            '/api/v1/downloads',
-            { resource_id: resource.value.id },
-            { signal: downloadAbortController.signal },
-        );
+        const saved = await downloadResource(resource.value, {
+            signal: downloadAbortController.signal,
+            onProgress: (progress) => {
+                downloadProgress.value = progress;
+            },
+        });
 
-        downloadProgress.value = 100;
+        resource.value = saved;
         await new Promise((resolve) => window.setTimeout(resolve, 250));
-        library.markDownloaded(resource.value.slug);
-    } catch (error) {
-        const wasCancelled = error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError';
+    } catch (err) {
+        const wasCancelled = err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError' || err?.name === 'AbortError';
 
         if (! wasCancelled) {
             downloadProgress.value = 0;
+            downloadError.value = err?.message || 'Download failed. Try again.';
         }
     } finally {
         clearDownloadTimers();
         downloading.value = false;
         downloadAbortController = null;
 
-        if (! library.isDownloaded(resource.value.slug)) {
+        if (! library.isDownloaded(resource.value?.slug)) {
             downloadProgress.value = 0;
         }
     }
+}
+
+function openOfflineFile() {
+    if (! resource.value?.offline_file_url) {
+        return;
+    }
+
+    window.open(resource.value.offline_file_url, '_blank', 'noopener,noreferrer');
 }
 
 function handleDownloadButtonClick() {

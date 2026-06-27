@@ -1,9 +1,14 @@
-export function useNative() {
-    const isNative = typeof window !== 'undefined'
-        && (window.NativePHP !== undefined || navigator.userAgent.includes('NativePHP'));
+import {
+    isEmbeddedMobileApi,
+    isNativePlatform,
+    isRemoteMobileApi,
+    resolveApiBaseUrl,
+} from '@/config/api';
 
+export function useNative() {
+    const isNative = isNativePlatform();
     const platform = isNative
-        ? (navigator.userAgent.includes('Android') ? 'android' : 'ios')
+        ? (getAgoraConfigPlatform() === 'ios' ? 'ios' : 'android')
         : 'web';
 
     async function saveOffline(key, data) {
@@ -23,5 +28,23 @@ export function useNative() {
         return raw ? JSON.parse(raw) : null;
     }
 
-    return { isNative, platform, saveOffline, loadOffline };
+    return {
+        isNative,
+        platform,
+        isRemoteApi: isRemoteMobileApi(),
+        isEmbeddedApi: isEmbeddedMobileApi(),
+        apiBaseUrl: resolveApiBaseUrl(),
+        saveOffline,
+        loadOffline,
+    };
+}
+
+function getAgoraConfigPlatform() {
+    const configured = window.__AGORA__?.nativePlatform;
+
+    if (configured === 'android' || configured === 'ios') {
+        return configured;
+    }
+
+    return navigator.userAgent.includes('Android') ? 'android' : 'ios';
 }

@@ -15,6 +15,7 @@
                 v-if="isOpen && resource"
                 class="action-menu__panel action-menu__panel--sheet"
                 role="menu"
+                data-no-pressable
                 @click.stop
             >
                 <p class="action-menu__title line-clamp-2">{{ resource.title }}</p>

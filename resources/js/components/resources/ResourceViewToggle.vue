@@ -8,7 +8,7 @@
             v-for="option in layouts"
             :key="option.id"
             type="button"
-            class="resource-view-toggle-btn rounded-lg px-2.5 py-1.5 transition sm:px-3"
+            class="resource-view-toggle-btn tap-feedback rounded-lg px-2.5 py-1.5 sm:px-3"
             :class="layout === option.id ? 'bg-brand text-white shadow-sm' : 'text-muted hover:text-app'"
             :title="option.title"
             :aria-pressed="layout === option.id"

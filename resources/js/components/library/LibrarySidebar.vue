@@ -1,26 +1,29 @@
 <template>
-    <aside class="library-sidebar bg-sidebar border-app flex h-full w-full flex-col overflow-hidden border-r">
+    <aside class="library-sidebar flex min-h-0 w-full flex-1 flex-col overflow-hidden" data-no-pressable>
         <div
-            class="border-app shrink-0 border-b"
+            class="library-sidebar__header border-app shrink-0 border-b"
             :class="embedded ? 'safe-top px-4 pb-3 pt-3' : 'safe-top px-5 pb-4 pt-4'"
         >
             <div class="flex items-center gap-3">
-                <BrandLogo size="md" />
+                <div class="library-sidebar__brand-icon shrink-0">
+                    <BrandLogo size="md" />
+                </div>
                 <div class="min-w-0">
-                    <p class="font-display text-app truncate text-lg font-semibold">My Library</p>
-                    <p class="text-muted text-xs">{{ APP_NAME }}</p>
+                    <p class="font-display text-app truncate text-base font-semibold leading-tight lg:text-lg">My Library</p>
+                    <p class="text-muted truncate text-xs">{{ APP_NAME }}</p>
                 </div>
             </div>
         </div>
 
         <nav
-            class="flex min-h-0 flex-1 flex-col px-3"
-            :class="embedded ? 'overflow-hidden py-3' : 'overflow-y-auto py-4'"
+            class="library-sidebar__nav flex min-h-0 flex-1 flex-col overflow-hidden px-2"
+            :class="embedded ? 'py-2' : 'py-3'"
         >
-            <div class="shrink-0">
+            <div class="library-sidebar__sections shrink-0 px-1">
                 <button
                     v-for="item in navItems"
                     :key="item.id"
+                    type="button"
                     class="library-nav-item flex w-full shrink-0 items-center justify-between rounded-xl px-3 text-left text-sm transition"
                     :class="[
                         embedded ? 'mb-0.5 py-2' : 'mb-1 py-3',
@@ -45,8 +48,8 @@
             </div>
 
             <div
-                class="mt-3 flex min-h-0 flex-1 flex-col px-1"
-                :class="embedded ? 'min-h-0' : 'mt-6 px-3'"
+                class="library-sidebar__collections border-app mt-3 flex min-h-0 flex-1 flex-col border-t pt-3"
+                :class="embedded ? 'px-1' : 'px-2'"
             >
                 <div class="mb-2 flex items-center justify-between gap-2">
                     <p class="text-muted text-xs font-semibold uppercase tracking-wide">Collections</p>
@@ -114,7 +117,7 @@ import IconNotes from '@/components/icons/IconNotes.vue';
 import IconClock from '@/components/icons/IconClock.vue';
 import IconPlus from '@/components/icons/IconPlus.vue';
 
-const props = defineProps({
+defineProps({
     embedded: { type: Boolean, default: false },
 });
 

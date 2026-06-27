@@ -82,7 +82,7 @@ class SampleCoverArt
             $y = $startY + ($index * 42);
             $escaped = htmlspecialchars($line, ENT_QUOTES | ENT_XML1);
             $lineElements .= <<<SVG
-  <text x="300" y="{$y}" text-anchor="middle" fill="{$textColor}" font-family="Optima, 'Segoe UI', sans-serif" font-size="34" font-weight="700">{$escaped}</text>
+  <text x="300" y="{$y}" text-anchor="middle" fill="{$textColor}" font-family="'Agora Display', 'Segoe UI', sans-serif" font-size="34" font-weight="700">{$escaped}</text>
 
 SVG;
         }
@@ -109,8 +109,8 @@ SVG;
   </g>
   {$lineElements}
   <rect x="48" y="688" width="120" height="36" rx="18" fill="#ffffff" opacity="0.92"/>
-  <text x="108" y="712" text-anchor="middle" fill="{$top}" font-family="Avenir, 'Segoe UI', sans-serif" font-size="16" font-weight="700">{$typeLabel}</text>
-  <text x="300" y="748" text-anchor="middle" fill="{$textColor}" opacity="0.82" font-family="Avenir, 'Segoe UI', sans-serif" font-size="15" font-weight="600" letter-spacing="0.12em">{$categoryLabel}</text>
+  <text x="108" y="712" text-anchor="middle" fill="{$top}" font-family="'Agora Sans', 'Segoe UI', sans-serif" font-size="16" font-weight="700">{$typeLabel}</text>
+  <text x="300" y="748" text-anchor="middle" fill="{$textColor}" opacity="0.82" font-family="'Agora Sans', 'Segoe UI', sans-serif" font-size="15" font-weight="600" letter-spacing="0.12em">{$categoryLabel}</text>
 </svg>
 SVG;
     }

@@ -1,24 +1,21 @@
 <template>
     <RouterLink
         :to="{ name: 'resource.show', params: { slug: resource.slug }, state: { resource } }"
-        class="resource-list-item bg-surface ring-app group flex items-stretch gap-3 overflow-hidden rounded-xl p-2.5 ring-1 transition hover:bg-surface-muted sm:gap-4 sm:p-3"
+        draggable="false"
+        class="resource-list-item tap-feedback bg-surface ring-app group flex items-stretch gap-3 overflow-hidden rounded-xl p-2.5 ring-1 transition hover:bg-surface-muted sm:gap-4 sm:p-3"
+        :class="longPress.pressClass"
+        v-bind="longPress.handlers"
         @mouseenter="prefetchResource(resource.slug)"
-        @pointerdown="longPress.onPointerdown"
-        @pointerup="longPress.onPointerup"
-        @pointerleave="longPress.onPointerleave"
-        @pointercancel="longPress.onPointercancel"
-        @pointermove="longPress.onPointermove"
-        @click="longPress.onClick"
-        @contextmenu.prevent="openQuickActions(resource)"
     >
         <div
             class="resource-list-item-cover relative aspect-[3/4] w-14 shrink-0 overflow-hidden rounded-lg sm:w-16"
         >
             <img
-                v-if="hasCover"
+                v-if="showCoverImage"
                 :src="resource.cover_image"
                 :alt="resource.title"
                 class="absolute inset-0 h-full w-full object-cover object-top"
+                @error="coverImageFailed = true"
             >
             <ResourceGeneratedCover
                 v-else
@@ -56,7 +53,7 @@
 </template>
 
 <script setup>
-import { computed, toRef } from 'vue';
+import { computed, ref, toRef, watch } from 'vue';
 import IconCheck from '@/components/icons/IconCheck.vue';
 import ResourceGeneratedCover from '@/components/resources/ResourceGeneratedCover.vue';
 import { useResourceMeta } from '@/composables/useResourceMeta';
@@ -75,5 +72,23 @@ const longPress = useLongPress(() => openQuickActions(props.resource));
 
 const resourceRef = toRef(props, 'resource');
 const { typeIcon, fileTypeLabel, metaLabel } = useResourceMeta(resourceRef);
-const hasCover = computed(() => Boolean(props.resource.cover_image));
+const coverImageFailed = ref(false);
+
+watch(() => props.resource.cover_image, () => {
+    coverImageFailed.value = false;
+});
+
+const showCoverImage = computed(() => {
+    if (coverImageFailed.value) {
+        return false;
+    }
+
+    const cover = props.resource.cover_image;
+
+    if (props.resource.offline_available) {
+        return typeof cover === 'string' && cover.startsWith('blob:');
+    }
+
+    return Boolean(cover);
+});
 </script>

@@ -1,0 +1,48 @@
+/* Self-hosted brand fonts (bundled by Vite for web + NativePHP Android). */
+@font-face {
+    font-family: 'Agora Sans';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/nunito-sans-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Agora Sans';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../fonts/nunito-sans-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Agora Sans';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../fonts/nunito-sans-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Agora Sans';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/nunito-sans-latin-700-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Agora Display';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/quattrocento-sans-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Agora Display';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/quattrocento-sans-latin-700-normal.woff2') format('woff2');
+}

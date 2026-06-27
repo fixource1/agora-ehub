@@ -1,6 +1,8 @@
 <template>
-    <div class="app-shell bg-app text-app min-h-[100dvh] overflow-x-clip">
-        <slot />
+    <div class="app-shell bg-app text-app flex min-h-0 flex-1 flex-col overflow-hidden">
+        <main class="app-shell__main flex min-h-0 flex-1 flex-col overflow-hidden">
+            <slot />
+        </main>
         <AppBottomNav v-if="showBottomNav" />
     </div>
 </template>

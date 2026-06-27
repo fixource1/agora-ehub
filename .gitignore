@@ -17,6 +17,9 @@
 /public/build
 /public/fonts-manifest.dev.json
 /public/hot
+/public/icon.png
+/public/splash.png
+/public/splash-dark.png
 /public/storage
 /storage/*.key
 /storage/pail

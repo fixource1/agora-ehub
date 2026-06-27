@@ -1,4 +1,5 @@
 import { computed, reactive } from 'vue';
+import { mergeResourcesWithOffline } from '@/composables/useOfflineStore';
 import { useResourceCache } from '@/composables/useResourceCache';
 
 const state = reactive({
@@ -28,19 +29,30 @@ export function useResourcesList() {
         state.error = null;
 
         inflight = window.axios
-            .get('/api/v1/resources')
-            .then((response) => {
-                state.resources = response.data.data ?? [];
+            .get('/resources')
+            .then(async (response) => {
+                const resources = await mergeResourcesWithOffline(response.data.data ?? []);
+                state.resources = resources;
                 seedFromList(state.resources);
                 state.loaded = true;
+                state.error = null;
 
                 return state.resources;
             })
-            .catch(() => {
-                state.error = 'Could not load resources. Check your connection and try again.';
+            .catch(async () => {
+                const offlineResources = await mergeResourcesWithOffline(state.resources);
 
-                if (! state.loaded) {
-                    state.resources = [];
+                if (offlineResources.length > 0) {
+                    state.resources = offlineResources;
+                    seedFromList(state.resources);
+                    state.loaded = true;
+                    state.error = null;
+                } else {
+                    state.error = 'Could not load resources. Check your connection and try again.';
+
+                    if (! state.loaded) {
+                        state.resources = [];
+                    }
                 }
 
                 return state.resources;

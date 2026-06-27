@@ -1,4 +1,5 @@
 import { reactive } from 'vue';
+import { getOfflineResource } from '@/composables/useOfflineStore';
 
 const cache = reactive(new Map());
 const inflight = new Map();
@@ -43,12 +44,23 @@ async function fetchResource(slug) {
     }
 
     const request = window.axios
-        .get(`/api/v1/resources/${slug}`)
+        .get(`/resources/${slug}`)
         .then((response) => {
             const resource = response.data.data;
             setResource(slug, resource);
 
             return resource;
+        })
+        .catch(async () => {
+            const offline = await getOfflineResource(slug);
+
+            if (offline) {
+                setResource(slug, offline);
+
+                return offline;
+            }
+
+            throw new Error('Could not load resource.');
         })
         .finally(() => {
             inflight.delete(slug);

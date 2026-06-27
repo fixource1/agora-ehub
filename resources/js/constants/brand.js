@@ -1,12 +1,12 @@
-import agoraIconUrl from '../../images/agora-icon.svg?url';
-
 export const APP_NAME = 'AGORA e-Hub';
 
-export const BRAND_LOGO_SRC = agoraIconUrl;
+/** Served from public/brand so NativePHP WebView can load it reliably. */
+export const BRAND_LOGO_SRC = '/brand/agora-icon.svg';
 
 export const BRAND_LOGO_ALT = 'AGORA';
 
-export const UP_SEAL_SRC = '/brand/UP Seal.png';
+/** Served from public/brand so NativePHP WebView can load it reliably. */
+export const UP_SEAL_SRC = '/brand/up-seal.png';
 
 export const UP_SEAL_ALT = 'University of the Philippines';
 

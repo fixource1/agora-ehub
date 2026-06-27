@@ -143,7 +143,7 @@ const tocItems = [
 ];
 
 onMounted(async () => {
-    const response = await window.axios.get(`/api/v1/resources/${route.params.slug}`);
+    const response = await window.axios.get(`/resources/${route.params.slug}`);
     resource.value = response.data.data;
     totalPages.value = response.data.data?.metadata?.page_count ?? 320;
 });

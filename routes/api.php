@@ -5,11 +5,13 @@ use App\Http\Controllers\Api\V1\ContributorResourceController;
 use App\Http\Controllers\Api\V1\DownloadController;
 use App\Http\Controllers\Api\V1\LookupController;
 use App\Http\Controllers\Api\V1\ResourceController;
+use App\Http\Controllers\Api\V1\ResourceFileDownloadController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::get('resources', [ResourceController::class, 'index']);
     Route::get('resources/{resource:slug}', [ResourceController::class, 'show']);
+    Route::get('resources/{resource:slug}/files/{resourceFile}/download', ResourceFileDownloadController::class);
 
     Route::get('downloads', [DownloadController::class, 'index']);
     Route::post('downloads', [DownloadController::class, 'store']);

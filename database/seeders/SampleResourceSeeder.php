@@ -11,6 +11,7 @@ use App\Models\ResourceType;
 use App\Models\Tag;
 use App\Models\User;
 use Database\Seeders\Support\SampleCoverArt;
+use Database\Seeders\Support\SampleResourceFiles;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -164,6 +165,8 @@ class SampleResourceSeeder extends Seeder
                 'tags' => ['ovcre', 'orientation', 'audio'],
             ],
         ];
+
+        SampleResourceFiles::ensure($samples);
 
         $newSlugs = collect($samples)->map(fn (array $sample) => Str::slug($sample['title']))->all();
 
