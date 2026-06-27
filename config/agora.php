@@ -29,6 +29,8 @@ return [
         'ensure_sample_files_on_download' => (bool) env('AGORA_ENSURE_SAMPLE_FILES_ON_DOWNLOAD', false),
         'benchmark_output' => storage_path('app/performance/baseline.json'),
         'simulate_base_url' => env('AGORA_SIMULATE_BASE_URL'),
+        'catalog_cache_seconds' => (int) env('AGORA_CATALOG_CACHE_SECONDS', 120),
+        'resource_show_cache_seconds' => (int) env('AGORA_RESOURCE_SHOW_CACHE_SECONDS', 600),
     ],
 
 ];

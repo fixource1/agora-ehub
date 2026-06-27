@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ResourceResource;
+use App\Http\Resources\ResourceSummaryResource;
 use App\Jobs\RecordResourceView;
 use App\Models\Resource;
 use App\Services\ResourceCatalogQuery;
@@ -21,26 +22,30 @@ class ResourceController extends Controller
         $perPage = $this->catalog->perPage($request);
 
         if ($this->shouldCacheCatalogIndex($request)) {
-            $cacheKey = "agora:catalog:index:v2:{$perPage}";
+            $cacheKey = $this->catalogCacheKey($request, $perPage);
+            $ttl = (int) config('agora.performance.catalog_cache_seconds', 120);
 
-            $payload = Cache::remember($cacheKey, now()->addSeconds(30), function () use ($request, $perPage) {
-                $paginator = $this->catalog->published($request)->paginate($perPage);
+            $json = Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($request, $perPage) {
+                $paginator = $this->catalog->listQuery($request)->paginate($perPage);
 
-                return ResourceResource::collection($paginator)->response()->getData(true);
+                return ResourceSummaryResource::collection($paginator)->response()->getContent();
             });
 
-            return response()->json($payload);
+            return response($json, 200, [
+                'Content-Type' => 'application/json',
+                'Cache-Control' => 'public, max-age='.$ttl,
+            ]);
         }
 
-        $query = $this->catalog->published($request);
+        $query = $this->catalog->listQuery($request);
 
         if ($request->filled('cursor')) {
-            return ResourceResource::collection(
+            return ResourceSummaryResource::collection(
                 $query->cursorPaginate($perPage)->withQueryString(),
             );
         }
 
-        return ResourceResource::collection(
+        return ResourceSummaryResource::collection(
             $query->paginate($perPage)->withQueryString(),
         );
     }
@@ -49,18 +54,25 @@ class ResourceController extends Controller
     {
         return ! $request->filled('cursor')
             && ! $request->filled('q')
-            && ! $request->filled('type')
-            && ! $request->filled('category')
             && ! $request->filled('page');
+    }
+
+    private function catalogCacheKey(Request $request, int $perPage): string
+    {
+        $type = $request->string('type')->toString() ?: '-';
+        $category = $request->string('category')->toString() ?: '-';
+
+        return "agora:catalog:index:v3:{$perPage}:{$type}:{$category}";
     }
 
     public function show(Request $request, Resource $resource): ResourceResource|JsonResponse
     {
         abort_unless($resource->status === 'published', 404);
 
-        $cacheKey = "agora:resource:show:v2:{$resource->slug}:{$resource->updated_at?->timestamp}";
+        $cacheKey = "agora:resource:show:v3:{$resource->slug}:{$resource->updated_at?->timestamp}";
+        $ttl = (int) config('agora.performance.resource_show_cache_seconds', 600);
 
-        $payload = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($resource) {
+        $json = Cache::remember($cacheKey, now()->addSeconds($ttl), function () use ($resource) {
             $loaded = $resource->load([
                 'resourceType',
                 'category',
@@ -70,7 +82,7 @@ class ResourceController extends Controller
                 'files',
             ]);
 
-            return (new ResourceResource($loaded))->response()->getData(true);
+            return (new ResourceResource($loaded))->response()->getContent();
         });
 
         if (! $request->header('X-Load-Test')) {
@@ -82,6 +94,9 @@ class ResourceController extends Controller
             )->afterResponse();
         }
 
-        return response()->json($payload);
+        return response($json, 200, [
+            'Content-Type' => 'application/json',
+            'Cache-Control' => 'public, max-age='.$ttl,
+        ]);
     }
 }

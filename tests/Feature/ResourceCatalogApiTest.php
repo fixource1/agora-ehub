@@ -59,7 +59,8 @@ class ResourceCatalogApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('meta.per_page', 1)
-            ->assertJsonPath('meta.total', 3);
+            ->assertJsonPath('meta.total', 3)
+            ->assertJsonMissingPath('data.0.description');
 
         $this->getJson('/api/v1/resources?type=pdf-document')
             ->assertOk()

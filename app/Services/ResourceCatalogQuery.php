@@ -11,10 +11,34 @@ use Illuminate\Support\Facades\Cache;
 
 class ResourceCatalogQuery
 {
-    public function published(Request $request): Builder
+    /**
+     * @var list<string>
+     */
+    private const LIST_COLUMNS = [
+        'resources.id',
+        'resources.title',
+        'resources.slug',
+        'resources.subtitle',
+        'resources.cover_image',
+        'resources.published_at',
+        'resources.created_at',
+        'resources.updated_at',
+        'resources.resource_type_id',
+        'resources.category_id',
+    ];
+
+    public function listQuery(Request $request): Builder
     {
         $query = Resource::query()
-            ->with(['resourceType', 'category', 'files' => fn ($fileQuery) => $fileQuery->where('is_primary', true)])
+            ->select(self::LIST_COLUMNS)
+            ->with([
+                'resourceType:id,name,slug',
+                'category:id,name,slug',
+                'files' => fn ($fileQuery) => $fileQuery
+                    ->select('id', 'resource_id', 'file_name', 'file_type', 'file_size', 'is_primary')
+                    ->where('is_primary', true),
+                'metadata' => fn ($metaQuery) => $metaQuery->select('resource_id', 'duration_seconds'),
+            ])
             ->where('status', 'published');
 
         $this->applyTypeFilter($query, $request->string('type')->toString());
@@ -24,6 +48,11 @@ class ResourceCatalogQuery
         return $query
             ->orderByDesc('published_at')
             ->orderByDesc('id');
+    }
+
+    public function published(Request $request): Builder
+    {
+        return $this->listQuery($request);
     }
 
     public function perPage(Request $request): int
