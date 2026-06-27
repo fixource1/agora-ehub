@@ -8,16 +8,16 @@ use App\Http\Resources\ResourceSummaryResource;
 use App\Jobs\RecordResourceView;
 use App\Models\Resource;
 use App\Services\ResourceCatalogQuery;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 
 class ResourceController extends Controller
 {
     public function __construct(private ResourceCatalogQuery $catalog) {}
 
-    public function index(Request $request): AnonymousResourceCollection|JsonResponse
+    public function index(Request $request): AnonymousResourceCollection|Response
     {
         $perPage = $this->catalog->perPage($request);
 
@@ -65,7 +65,7 @@ class ResourceController extends Controller
         return "agora:catalog:index:v3:{$perPage}:{$type}:{$category}";
     }
 
-    public function show(Request $request, Resource $resource): ResourceResource|JsonResponse
+    public function show(Request $request, Resource $resource): Response
     {
         abort_unless($resource->status === 'published', 404);
 
