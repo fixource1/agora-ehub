@@ -11,13 +11,15 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libzip-dev \
     libicu-dev \
+    libpq-dev \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
     zip \
     unzip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
-        pdo_mysql \
+        pdo_pgsql \
+        pgsql \
         mbstring \
         exif \
         pcntl \
@@ -33,14 +35,14 @@ RUN apt-get update && apt-get install -y \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-RUN groupadd -g ${GID} saliksik \
-    && useradd -u ${UID} -g saliksik -m saliksik \
+RUN groupadd -g ${GID} agora_ehub \
+    && useradd -u ${UID} -g agora_ehub -m agora_ehub \
     && mkdir -p /var/www/html \
-    && chown -R saliksik:saliksik /var/www/html
+    && chown -R agora_ehub:agora_ehub /var/www/html
 
 WORKDIR /var/www/html
 
-USER saliksik
+USER agora_ehub
 
 EXPOSE 9000
 

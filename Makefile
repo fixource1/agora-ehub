@@ -43,13 +43,13 @@ dev:
 	docker compose --profile dev up -d
 
 setup: build up
-	@echo "Waiting for MySQL..."
-	@sleep 15
+	@echo "Waiting for PostgreSQL..."
+	@sleep 8
 	docker compose exec app composer install
 	docker compose exec app php artisan key:generate --force
 	docker compose exec app php artisan migrate --force
 	docker compose exec app php artisan storage:link
-	@echo "SALIKSIK is ready at http://localhost:8080"
+	@echo "AGORA e-Hub is ready at http://localhost:8080"
 
 %:
 	@:

@@ -7,10 +7,12 @@ use App\Http\Requests\Api\V1\StoreResourceRequest;
 use App\Http\Requests\Api\V1\UpdateResourceRequest;
 use App\Http\Resources\ResourceResource;
 use App\Models\Resource;
+use App\Models\ResourceFile;
 use App\Models\Tag;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 
 class ContributorResourceController extends Controller
@@ -47,6 +49,8 @@ class ContributorResourceController extends Controller
         $data = $request->validated();
         $user = $request->user();
 
+        $status = $this->resolveStatus($request, $data['status'] ?? 'draft');
+
         $resource = Resource::create([
             'uploader_id' => $user->id,
             'resource_type_id' => $data['resource_type_id'],
@@ -57,13 +61,17 @@ class ContributorResourceController extends Controller
             'description' => $data['description'] ?? null,
             'language' => $data['language'] ?? 'en',
             'audience_level' => $data['audience_level'] ?? 'general',
-            'status' => $data['status'] ?? 'draft',
-            'published_at' => ($data['status'] ?? 'draft') === 'published' ? now() : null,
+            'status' => $status,
+            'published_at' => $status === 'published' ? now() : null,
         ]);
 
         if ($request->hasFile('cover_image')) {
             $path = $request->file('cover_image')->store('covers', 'public');
             $resource->update(['cover_image' => '/storage/'.$path]);
+        }
+
+        if ($request->hasFile('primary_file')) {
+            $this->storePrimaryFile($resource, $request->file('primary_file'));
         }
 
         $this->syncTags($resource, $data['tags'] ?? []);
@@ -92,6 +100,10 @@ class ContributorResourceController extends Controller
             $data['slug'] = $this->uniqueSlug($data['title'], $resource->id);
         }
 
+        if (array_key_exists('status', $data)) {
+            $data['status'] = $this->resolveStatus($request, $data['status'], $resource->status);
+        }
+
         if (($data['status'] ?? $resource->status) === 'published' && ! $resource->published_at) {
             $data['published_at'] = now();
         }
@@ -101,8 +113,12 @@ class ContributorResourceController extends Controller
             $data['cover_image'] = '/storage/'.$path;
         }
 
-        unset($data['tags']);
+        unset($data['tags'], $data['primary_file']);
         $resource->update($data);
+
+        if ($request->hasFile('primary_file')) {
+            $this->storePrimaryFile($resource, $request->file('primary_file'));
+        }
 
         if ($request->has('tags')) {
             $this->syncTags($resource, $request->input('tags', []));
@@ -138,6 +154,38 @@ class ContributorResourceController extends Controller
         }
 
         return $slug ?: Str::random(8);
+    }
+
+    private function resolveStatus(Request $request, ?string $requested, string $fallback = 'draft'): string
+    {
+        $status = $requested ?? $fallback;
+
+        if ($request->user()?->can('manage resources')) {
+            return $status;
+        }
+
+        return in_array($status, ['draft', 'pending_review'], true) ? $status : 'draft';
+    }
+
+    private function storePrimaryFile(Resource $resource, UploadedFile $uploadedFile): ResourceFile
+    {
+        $resource->files()->where('is_primary', true)->delete();
+
+        $path = $uploadedFile->store('resources/'.$resource->id, 'public');
+
+        return ResourceFile::query()->create([
+            'resource_id' => $resource->id,
+            'file_name' => $uploadedFile->getClientOriginalName(),
+            'file_path' => $path,
+            'disk' => 'public',
+            'mime_type' => $uploadedFile->getMimeType(),
+            'file_type' => strtolower($uploadedFile->getClientOriginalExtension() ?: 'file'),
+            'file_size' => $uploadedFile->getSize(),
+            'version' => '1.0',
+            'is_primary' => true,
+            'is_downloadable' => true,
+            'checksum' => hash_file('sha256', $uploadedFile->getRealPath()),
+        ]);
     }
 
     private function syncTags(Resource $resource, array $tags): void

@@ -1,4 +1,4 @@
-# NativePHP for SALIKSIC
+# NativePHP for AGORA e-Hub
 
 NativePHP Mobile is **installed** (`nativephp/mobile ^3.3`). The Laravel package, config, and offline download API are ready. Native Android project files must be generated from **Windows CMD** (not WSL).
 
@@ -19,7 +19,7 @@ NativePHP Mobile is **installed** (`nativephp/mobile ^3.3`). The Laravel package
 `php artisan native:install` **cannot complete Android setup inside WSL**. Run from Windows:
 
 ```cmd
-cd \\wsl.localhost\Ubuntu\home\dom\saliksik
+cd \\wsl.localhost\Ubuntu\home\dom\AGORA_e-HUB
 scripts\native-install-windows.bat
 ```
 
@@ -61,12 +61,12 @@ php artisan native:package android
 ## Environment variables
 
 ```env
-NATIVEPHP_APP_ID=com.uplb.saliksik
+NATIVEPHP_APP_ID=com.uplb.agora.ehub
 NATIVEPHP_APP_VERSION=1.0.0
 NATIVEPHP_APP_VERSION_CODE=1
 NATIVEPHP_START_URL=/home
-NATIVEPHP_DEEPLINK_SCHEME=saliksik
-NATIVEPHP_DEEPLINK_HOST=saliksik.local
+NATIVEPHP_DEEPLINK_SCHEME=agora-ehub
+NATIVEPHP_DEEPLINK_HOST=agora-ehub.local
 ```
 
 ## UI breakpoints

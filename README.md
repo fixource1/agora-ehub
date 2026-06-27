@@ -1,6 +1,4 @@
-# SALIKSIC
-
-**S**cientific **A**rchive of **L**iterature, **I**nformation, **K**nowledge, **S**tudies, **I**nsights, and **C**ollection
+# AGORA e-Hub
 
 Offline-first digital knowledge repository for UPLB OVCRE and academic institutions.
 
@@ -9,7 +7,7 @@ Offline-first digital knowledge repository for UPLB OVCRE and academic instituti
 - Laravel 13
 - Filament 5 (admin panel)
 - Vue 3 + Pinia + Vue Router (reader app + author web portal)
-- MySQL 8.4 + Redis 7 (Docker)
+- PostgreSQL 16 + Redis 7 (Docker)
 - Laravel Sanctum (API auth for author portal and future NativePHP sync)
 - Laravel Boost (MCP + AI guidelines)
 
@@ -48,20 +46,20 @@ Open:
 
 | Role | Email | Password |
 |------|-------|----------|
-| Administrator | admin@saliksik.local | password |
-| Contributor | author@saliksik.local | password |
-| Reader | reader@saliksik.local | password |
+| Administrator | admin@agora-ehub.local | password |
+| Contributor | author@agora-ehub.local | password |
+| Reader | reader@agora-ehub.local | password |
 
 ## Docker Services
 
 | Service | Container | Port |
 |---------|-----------|------|
-| Nginx | saliksik-nginx | 8080 |
-| PHP-FPM | saliksik-app | 9000 (internal) |
-| MySQL | saliksik-mysql | 3306 |
-| Redis | saliksik-redis | 6379 |
-| Node/Vite | saliksik-node | 5173 (dev profile) |
-| Mailpit | saliksik-mailpit | 8025 (dev profile) |
+| Nginx | AGORA_e-HUB-nginx | 8080 |
+| PHP-FPM | AGORA_e-HUB-app | 9000 (internal) |
+| PostgreSQL | AGORA_e-HUB-postgres | 5432 |
+| Redis | AGORA_e-HUB-redis | 6379 |
+| Node/Vite | AGORA_e-HUB-node | 5173 (dev profile) |
+| Mailpit | AGORA_e-HUB-mailpit | 8025 (dev profile) |
 
 ## Makefile Commands
 

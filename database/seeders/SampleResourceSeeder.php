@@ -19,7 +19,7 @@ class SampleResourceSeeder extends Seeder
 
     public function run(): void
     {
-        $uploader = User::query()->where('email', 'author@saliksik.local')->first()
+        $uploader = User::query()->where('email', 'author@agora-ehub.local')->first()
             ?? User::query()->first();
 
         if (! $uploader) {

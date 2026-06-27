@@ -1,6 +1,3 @@
-/**
- * Detect NativePHP mobile/desktop shell and expose offline helpers.
- */
 export function useNative() {
     const isNative = typeof window !== 'undefined'
         && (window.NativePHP !== undefined || navigator.userAgent.includes('NativePHP'));
@@ -14,7 +11,7 @@ export function useNative() {
             await window.NativePHP.SecureStorage.set(key, JSON.stringify(data));
             return;
         }
-        localStorage.setItem(`saliksik:${key}`, JSON.stringify(data));
+        localStorage.setItem(`agora:${key}`, JSON.stringify(data));
     }
 
     async function loadOffline(key) {
@@ -22,7 +19,7 @@ export function useNative() {
             const value = await window.NativePHP.SecureStorage.get(key);
             return value ? JSON.parse(value) : null;
         }
-        const raw = localStorage.getItem(`saliksik:${key}`);
+        const raw = localStorage.getItem(`agora:${key}`);
         return raw ? JSON.parse(raw) : null;
     }
 

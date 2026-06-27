@@ -28,7 +28,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('SALIKSIC')
+            ->brandName('AGORA e-Hub')
             ->colors([
                 'primary' => Color::hex('#00563F'),
             ])

@@ -1,23 +1,22 @@
 <template>
-    <nav class="app-bottom-nav bg-surface/95 border-app safe-bottom fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur">
-        <div class="mx-auto grid max-w-lg grid-cols-4 px-2 pt-2 pb-1 md:max-w-3xl lg:max-w-5xl xl:max-w-6xl">
-            <RouterLink
-                v-for="item in items"
-                :key="item.name"
-                :to="item.to"
-                class="text-muted flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-[11px] font-medium md:py-2.5 md:text-xs"
-            >
-                <component
-                    :is="item.icon"
-                    class="h-6 w-6 md:h-7 md:w-7"
-                    :class="$route.name === item.name ? 'text-brand' : 'text-muted'"
-                />
-                <span :class="$route.name === item.name ? 'text-brand font-medium' : ''">{{ item.label }}</span>
-                <span
-                    v-if="$route.name === item.name"
-                    class="bg-brand h-0.5 w-8 rounded-full md:w-10"
-                />
-            </RouterLink>
+    <nav class="app-bottom-nav fixed inset-x-0 bottom-0 z-30">
+        <div class="app-bottom-nav-bar flex items-center justify-center">
+            <div class="app-bottom-nav-menu flex w-full max-w-[22rem] items-stretch gap-0.5 sm:max-w-[23rem]">
+                <RouterLink
+                    v-for="item in items"
+                    :key="item.name"
+                    :to="item.to"
+                    class="app-bottom-nav-item flex flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-medium sm:text-[11px]"
+                    :class="$route.name === item.name ? 'app-bottom-nav-item--active text-brand' : 'text-muted'"
+                >
+                    <component
+                        :is="item.icon"
+                        :filled="$route.name === item.name"
+                        class="h-5 w-5 shrink-0 sm:h-[1.375rem] sm:w-[1.375rem]"
+                    />
+                    <span class="leading-none">{{ item.label }}</span>
+                </RouterLink>
+            </div>
         </div>
     </nav>
 </template>

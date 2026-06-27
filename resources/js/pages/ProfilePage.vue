@@ -27,6 +27,12 @@
                 </div>
             </div>
 
+            <div class="bg-surface ring-app mt-4 rounded-2xl p-4 ring-1">
+                <p class="text-app mb-3 font-medium">Resource layout</p>
+                <p class="text-muted mb-3 text-xs">Applies to Library and Discover</p>
+                <ResourceViewToggle />
+            </div>
+
             <div class="mt-6 space-y-2">
                 <button
                     v-for="item in menuItems"
@@ -45,6 +51,7 @@
 import AppShell from '@/layouts/AppShell.vue';
 import MobileTopBar from '@/components/layout/MobileTopBar.vue';
 import { useTheme } from '@/composables/useTheme';
+import ResourceViewToggle from '@/components/resources/ResourceViewToggle.vue';
 
 const { isDark, toggle } = useTheme();
 

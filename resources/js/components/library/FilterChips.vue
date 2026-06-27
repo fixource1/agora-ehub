@@ -1,5 +1,5 @@
 <template>
-    <div class="flex gap-2 overflow-x-auto pb-1 md:pt-1">
+    <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide md:pt-1">
         <button
             v-for="filter in filters"
             :key="filter"

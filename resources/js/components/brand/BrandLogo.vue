@@ -1,14 +1,10 @@
 <template>
-    <div
-        class="brand-logo bg-surface ring-app flex shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1"
+    <img
+        :src="BRAND_LOGO_SRC"
+        :alt="BRAND_LOGO_ALT"
+        class="brand-logo shrink-0 object-contain"
         :class="sizeClass"
     >
-        <img
-            :src="BRAND_LOGO_SRC"
-            :alt="BRAND_LOGO_ALT"
-            class="h-[88%] w-[88%] object-contain"
-        >
-    </div>
 </template>
 
 <script setup>

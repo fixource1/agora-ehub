@@ -1,7 +1,19 @@
 <template>
     <AppShell :show-bottom-nav="false">
-        <div v-if="loading" class="text-muted flex min-h-[100dvh] items-center justify-center">
-            Loading...
+        <ResourceDetailSkeleton v-if="showSkeleton" />
+
+        <div
+            v-else-if="error && !resource"
+            class="text-muted flex min-h-[100dvh] flex-col items-center justify-center gap-4 px-6 text-center"
+        >
+            <p class="text-app text-sm">{{ error }}</p>
+            <button
+                type="button"
+                class="text-brand text-sm font-medium"
+                @click="loadResource(route.params.slug)"
+            >
+                Try again
+            </button>
         </div>
 
         <template v-else-if="resource">
@@ -191,21 +203,56 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppShell from '@/layouts/AppShell.vue';
+import ResourceDetailSkeleton from '@/components/resources/ResourceDetailSkeleton.vue';
 import IconBack from '@/components/icons/IconBack.vue';
 import IconCloudOffline from '@/components/icons/IconCloudOffline.vue';
 import IconBookmark from '@/components/icons/IconBookmark.vue';
 import { useLibrary } from '@/composables/useLibrary';
+import { useResourceCache } from '@/composables/useResourceCache';
+import { useDelayedLoading } from '@/composables/useDelayedLoading';
 
 const route = useRoute();
 const router = useRouter();
 const library = useLibrary();
+const { getResource, fetchResource } = useResourceCache();
 
 const resource = ref(null);
 const loading = ref(true);
+const error = ref(null);
 const showFullDescription = ref(false);
+
+const needsSkeleton = computed(() => loading.value && ! resource.value);
+const { showSkeleton } = useDelayedLoading(needsSkeleton);
+
+function resolveInitialResource() {
+    return history.state?.resource ?? getResource(route.params.slug);
+}
+
+async function loadResource(slug) {
+    error.value = null;
+    const cached = resolveInitialResource();
+
+    if (cached) {
+        resource.value = cached;
+        loading.value = false;
+    } else {
+        loading.value = true;
+    }
+
+    try {
+        const detail = await fetchResource(slug);
+        resource.value = detail;
+    } catch {
+        if (! resource.value) {
+            error.value = 'Could not load this resource. Check your connection and try again.';
+        }
+    } finally {
+        loading.value = false;
+    }
+}
 
 const isOffline = computed(() => resource.value && library.isDownloaded(resource.value.slug));
 const primaryAuthor = computed(() => resource.value?.authors?.[0]?.name ?? null);
@@ -259,12 +306,16 @@ function toggleOffline() {
     }
 }
 
-onMounted(async () => {
-    try {
-        const response = await window.axios.get(`/api/v1/resources/${route.params.slug}`);
-        resource.value = response.data.data;
-    } finally {
-        loading.value = false;
+onMounted(() => loadResource(route.params.slug));
+
+watch(() => route.params.slug, (slug) => {
+    if (! slug) {
+        return;
     }
+
+    error.value = null;
+    resource.value = resolveInitialResource();
+    loading.value = ! resource.value;
+    loadResource(slug);
 });
 </script>

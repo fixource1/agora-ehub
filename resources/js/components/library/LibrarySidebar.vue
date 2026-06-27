@@ -7,8 +7,8 @@
             <div class="flex items-center gap-3">
                 <BrandLogo size="md" />
                 <div class="min-w-0">
-                    <p class="text-app truncate text-lg font-semibold">My Library</p>
-                    <p class="text-muted text-xs">SALIKSIC</p>
+                    <p class="font-display text-app truncate text-lg font-semibold">My Library</p>
+                    <p class="text-muted text-xs">{{ APP_NAME }}</p>
                 </div>
             </div>
         </div>
@@ -20,24 +20,38 @@
             <button
                 v-for="item in navItems"
                 :key="item.id"
-                class="text-app flex w-full shrink-0 items-center justify-between rounded-xl px-3 text-left text-sm transition"
+                class="library-nav-item flex w-full shrink-0 items-center justify-between rounded-xl px-3 text-left text-sm transition"
                 :class="[
                     embedded ? 'mb-0.5 py-2' : 'mb-1 py-3',
-                    library.state.activeSection === item.id ? 'nav-active font-medium' : 'hover:bg-surface-muted',
+                    library.state.activeSection === item.id
+                        ? 'bg-brand text-white shadow-sm font-medium'
+                        : 'text-app hover:bg-surface-muted',
                 ]"
                 @click="selectSection(item.id)"
             >
                 <span class="flex min-w-0 items-center gap-3">
-                    <component :is="item.icon" class="h-5 w-5 shrink-0" />
+                    <component :is="item.icon" class="library-nav-item-icon h-5 w-5 shrink-0" />
                     <span class="truncate">{{ item.label }}</span>
                 </span>
-                <span v-if="item.count" class="text-muted ml-2 shrink-0 text-xs">{{ item.count }}</span>
+                <span
+                    v-if="item.count != null"
+                    class="library-nav-item-count ml-2 shrink-0 text-xs"
+                    :class="library.state.activeSection === item.id ? 'text-white/90' : 'text-muted'"
+                >
+                    {{ item.count }}
+                </span>
             </button>
 
             <div class="mt-3 shrink-0 px-1" :class="embedded ? '' : 'mt-6 px-3'">
-                <div class="mb-2 flex items-center justify-between">
+                <div class="mb-2 flex items-center justify-between gap-2">
                     <p class="text-muted text-xs font-semibold uppercase tracking-wide">Collections</p>
-                    <button class="text-maroon font-medium">+</button>
+                    <button
+                        type="button"
+                        class="library-collections-add"
+                        aria-label="Add collection"
+                    >
+                        <IconPlus class="h-3.5 w-3.5" />
+                    </button>
                 </div>
                 <button
                     v-for="collection in visibleCollections"
@@ -56,10 +70,14 @@
 <script setup>
 import { computed } from 'vue';
 import { useLibrary } from '@/composables/useLibrary';
-import IconLibrary from '@/components/icons/IconLibrary.vue';
+import IconBooks from '@/components/icons/IconBooks.vue';
 import BrandLogo from '@/components/brand/BrandLogo.vue';
-import IconCloudOffline from '@/components/icons/IconCloudOffline.vue';
+import { APP_NAME } from '@/constants/brand';
+import IconDownload from '@/components/icons/IconDownload.vue';
 import IconBookmark from '@/components/icons/IconBookmark.vue';
+import IconNotes from '@/components/icons/IconNotes.vue';
+import IconClock from '@/components/icons/IconClock.vue';
+import IconPlus from '@/components/icons/IconPlus.vue';
 
 const props = defineProps({
     embedded: { type: Boolean, default: false },
@@ -68,11 +86,11 @@ const props = defineProps({
 const library = useLibrary();
 
 const navItems = [
-    { id: 'offline', label: 'Offline', count: library.state.counts.offline, icon: IconCloudOffline },
-    { id: 'all', label: 'All Resources', count: library.state.counts.allResources, icon: IconLibrary },
-    { id: 'notes', label: 'Notes', count: library.state.counts.notes, icon: IconBookmark },
+    { id: 'offline', label: 'Offline', count: library.state.counts.offline, icon: IconDownload },
+    { id: 'all', label: 'All Resources', count: library.state.counts.allResources, icon: IconBooks },
+    { id: 'notes', label: 'Notes', count: library.state.counts.notes, icon: IconNotes },
     { id: 'bookmarks', label: 'Bookmarks', count: library.state.counts.bookmarks, icon: IconBookmark },
-    { id: 'recent', label: 'Recently Opened', count: null, icon: IconLibrary },
+    { id: 'recent', label: 'Recently Opened', count: library.state.recentSlugs.length, icon: IconClock },
 ];
 
 const visibleCollections = computed(() =>

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const TOKEN_KEY = 'saliksic_web_token';
+const TOKEN_KEY = 'agora_web_token';
 
 const client = axios.create({
     baseURL: '/api/v1',

@@ -1,11 +1,12 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "uplb/saliksik",
+    "name": "uplb/agora-e-hub",
     "type": "project",
-    "description": "SALIKSIC - Scientific Archive of Literature, Information, Knowledge, Studies, Insights, and Collection",
+    "description": "AGORA e-Hub - Shared Archive of Literature, Information, Knowledge, Studies, Insights, and Collection",
     "keywords": [
         "laravel",
-        "saliksik",
+        "agora",
+        "e-hub",
         "e-resources",
         "digital-library"
     ],

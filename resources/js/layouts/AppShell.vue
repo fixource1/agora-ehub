@@ -1,5 +1,5 @@
 <template>
-    <div class="app-shell bg-app text-app min-h-[100dvh]">
+    <div class="app-shell bg-app text-app min-h-[100dvh] overflow-x-clip">
         <slot />
         <AppBottomNav v-if="showBottomNav" />
     </div>

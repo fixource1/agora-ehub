@@ -5,7 +5,7 @@ const theme = ref('light');
 function applyTheme(value) {
     theme.value = value;
     document.documentElement.classList.toggle('dark', value === 'dark');
-    localStorage.setItem('saliksik-theme', value);
+    localStorage.setItem('agora-theme', value);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
         meta.setAttribute('content', value === 'dark' ? '#132E54' : '#00563F');
@@ -13,7 +13,7 @@ function applyTheme(value) {
 }
 
 export function initTheme() {
-    const saved = localStorage.getItem('saliksik-theme');
+    const saved = localStorage.getItem('agora-theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     applyTheme(saved ?? (prefersDark ? 'dark' : 'light'));
 }

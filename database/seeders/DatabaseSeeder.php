@@ -2,12 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\Category;
-use App\Models\ResourceType;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,11 +14,10 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             ResourceTypeSeeder::class,
             CategorySeeder::class,
-            SampleResourceSeeder::class,
         ]);
 
         $admin = User::query()->updateOrCreate(
-            ['email' => 'admin@saliksik.local'],
+            ['email' => 'admin@agora-ehub.local'],
             [
                 'name' => 'Domingo Abucay',
                 'password' => Hash::make('password'),
@@ -31,7 +27,7 @@ class DatabaseSeeder extends Seeder
         $admin->assignRole('administrator');
 
         $contributor = User::query()->updateOrCreate(
-            ['email' => 'author@saliksik.local'],
+            ['email' => 'author@agora-ehub.local'],
             [
                 'name' => 'Domingo Abucay',
                 'password' => Hash::make('password'),
@@ -42,12 +38,14 @@ class DatabaseSeeder extends Seeder
         $contributor->assignRole('contributor');
 
         $reader = User::query()->firstOrCreate(
-            ['email' => 'reader@saliksik.local'],
+            ['email' => 'reader@agora-ehub.local'],
             [
                 'name' => 'Student Reader',
                 'password' => Hash::make('password'),
             ],
         );
         $reader->assignRole('reader');
+
+        $this->call(SampleResourceSeeder::class);
     }
 }

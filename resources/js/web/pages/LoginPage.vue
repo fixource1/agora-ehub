@@ -7,7 +7,7 @@
         <div class="w-full max-w-md">
             <div class="mb-8 text-center">
                 <img :src="BRAND_LOGO_SRC" :alt="BRAND_LOGO_ALT" class="mx-auto mb-4 h-16 w-16 rounded-full object-cover shadow-sm">
-                <h1 class="text-app text-2xl font-bold">SALIKSIC Author Portal</h1>
+                <h1 class="text-app text-2xl font-bold">{{ APP_NAME }} Author Portal</h1>
                 <p class="text-muted mt-2 text-sm">Sign in to manage and publish institutional resources</p>
             </div>
 
@@ -25,7 +25,7 @@
                         required
                         autocomplete="email"
                         class="web-input"
-                        placeholder="author@saliksik.local"
+                        placeholder="author@agora-ehub.local"
                     >
                 </label>
 
@@ -62,7 +62,7 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import { BRAND_LOGO_ALT, BRAND_LOGO_SRC } from '@/constants/brand';
+import { APP_NAME, BRAND_LOGO_ALT, BRAND_LOGO_SRC } from '@/constants/brand';
 import WebThemeToggle from '../components/WebThemeToggle.vue';
 
 const auth = useAuthStore();

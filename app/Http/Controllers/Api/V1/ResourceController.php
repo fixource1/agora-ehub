@@ -50,7 +50,7 @@ class ResourceController extends Controller
             'files',
         ]);
 
-        $resource->increment('view_count');
+        defer(fn () => $resource->increment('view_count'));
 
         return new ResourceResource($resource);
     }

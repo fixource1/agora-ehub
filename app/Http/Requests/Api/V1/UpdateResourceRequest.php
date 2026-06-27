@@ -30,6 +30,7 @@ class UpdateResourceRequest extends FormRequest
             'tags' => ['nullable', 'array', 'max:5'],
             'tags.*' => ['string', 'max:50'],
             'cover_image' => ['nullable', 'image', 'max:5120'],
+            'primary_file' => ['nullable', 'file', 'max:51200'],
         ];
     }
 }

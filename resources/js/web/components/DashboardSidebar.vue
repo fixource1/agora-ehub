@@ -1,65 +1,119 @@
 <template>
-    <aside class="web-sidebar bg-sidebar border-app flex h-screen w-72 shrink-0 flex-col border-r">
-        <div class="border-app shrink-0 border-b px-5 py-5">
-            <div class="flex items-center gap-3">
-                <div class="bg-brand flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white">
+    <aside
+        class="web-sidebar bg-sidebar border-app flex h-screen shrink-0 flex-col border-r transition-[width] duration-200 ease-out"
+        :class="collapsed ? 'web-sidebar--collapsed w-[4.75rem]' : 'w-64 xl:w-72'"
+    >
+        <div class="border-app shrink-0 border-b" :class="collapsed ? 'px-2 py-3' : 'px-4 py-4'">
+            <div v-if="collapsed" class="flex flex-col items-center gap-2">
+                <button
+                    type="button"
+                    class="text-muted hover:text-app flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-surface"
+                    title="Expand sidebar"
+                    aria-label="Expand sidebar"
+                    @click="toggle()"
+                >
+                    <IconChevronLeft class="h-5 w-5 rotate-180" />
+                </button>
+                <BrandLogo size="sm" />
+            </div>
+            <div v-else class="flex items-center gap-3">
+                <BrandLogo size="md" />
+                <div class="min-w-0 flex-1">
+                    <p class="text-app truncate text-sm font-semibold">{{ APP_NAME }}</p>
+                    <p class="text-muted text-xs">Author Portal</p>
+                </div>
+                <button
+                    type="button"
+                    class="text-muted hover:text-app flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition hover:bg-surface"
+                    title="Collapse sidebar"
+                    aria-label="Collapse sidebar"
+                    @click="toggle()"
+                >
+                    <IconChevronLeft class="h-5 w-5" />
+                </button>
+            </div>
+
+            <div
+                class="bg-surface ring-app flex items-center rounded-xl ring-1"
+                :class="collapsed ? 'mt-3 justify-center p-2' : 'mt-4 gap-3 p-3'"
+                :title="collapsed ? auth.user?.name : undefined"
+            >
+                <div class="bg-brand flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white">
                     {{ initials }}
                 </div>
-                <div class="min-w-0">
-                    <p class="text-app truncate text-sm font-semibold">{{ auth.user?.name }}</p>
+                <div v-show="!collapsed" class="min-w-0">
+                    <p class="text-app truncate text-sm font-medium">{{ auth.user?.name }}</p>
                     <p class="text-muted truncate text-xs">{{ roleLabel }}</p>
                 </div>
             </div>
         </div>
 
-        <nav class="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-            <p class="text-muted px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide">Author Dashboard</p>
+        <nav class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 py-3" :class="collapsed ? 'px-2' : 'px-3'">
+            <p v-show="!collapsed" class="web-nav-section">Author Dashboard</p>
+
             <RouterLink
                 v-for="item in mainNav"
-                :key="item.to"
+                :key="item.id"
                 :to="item.to"
-                class="web-nav-link mb-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm"
-                :class="{ 'router-link-active': isNavActive(item) }"
+                active-class=""
+                exact-active-class=""
+                class="web-nav-link"
+                :class="{ 'web-nav-link--active': activeNavKey === item.id, 'web-nav-link--collapsed': collapsed }"
+                :title="collapsed ? item.label : undefined"
             >
-                <span class="text-base" aria-hidden="true">{{ item.icon }}</span>
-                {{ item.label }}
+                <component :is="item.icon" class="web-nav-link-icon h-5 w-5 shrink-0" />
+                <span v-show="!collapsed" class="truncate">{{ item.label }}</span>
             </RouterLink>
 
-            <p class="text-muted mt-6 px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide">Create</p>
+            <p v-show="!collapsed" class="web-nav-section mt-5">Create</p>
+
             <RouterLink
                 to="/author/resources/new"
-                class="web-nav-link mb-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm"
-                active-class="router-link-active"
+                active-class=""
+                exact-active-class=""
+                class="web-nav-link"
+                :class="{ 'web-nav-link--active': activeNavKey === 'new', 'web-nav-link--collapsed': collapsed }"
+                :title="collapsed ? 'Add New Resource' : undefined"
             >
-                <span class="text-base" aria-hidden="true">+</span>
-                Add New Resource
+                <IconPlus class="web-nav-link-icon h-5 w-5 shrink-0" />
+                <span v-show="!collapsed" class="truncate">Add New Resource</span>
             </RouterLink>
+
             <RouterLink
                 to="/author/resources?status=draft"
-                class="web-nav-link mb-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm"
-                :class="{ 'router-link-active': isDraftsActive }"
+                active-class=""
+                exact-active-class=""
+                class="web-nav-link"
+                :class="{ 'web-nav-link--active': activeNavKey === 'drafts', 'web-nav-link--collapsed': collapsed }"
+                :title="collapsed ? 'Drafts' : undefined"
             >
-                <span class="text-base" aria-hidden="true">📝</span>
-                Drafts
+                <IconDocument class="web-nav-link-icon h-5 w-5 shrink-0" />
+                <span v-show="!collapsed" class="truncate">Drafts</span>
             </RouterLink>
         </nav>
 
-        <div class="border-app shrink-0 space-y-2 border-t p-4">
-            <WebThemeToggle />
+        <div class="border-app shrink-0 border-t p-2" :class="collapsed ? 'px-2' : 'p-3'">
+            <WebThemeToggle :collapsed="collapsed" />
             <a
                 href="/"
                 target="_blank"
-                class="text-brand border-app flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition hover:bg-surface-muted"
+                rel="noopener noreferrer"
+                class="web-utility-link"
+                :class="{ 'web-utility-link--collapsed': collapsed }"
+                :title="collapsed ? 'Preview App' : undefined"
             >
-                Preview App
-                <span aria-hidden="true">↗</span>
+                <IconExternalLink class="h-5 w-5 shrink-0" />
+                <span v-show="!collapsed">Preview App</span>
             </a>
             <button
                 type="button"
-                class="text-muted w-full rounded-lg px-4 py-2 text-sm transition hover:bg-surface-muted hover:text-app"
+                class="web-utility-link web-utility-link--muted"
+                :class="{ 'web-utility-link--collapsed': collapsed }"
+                :title="collapsed ? 'Sign out' : undefined"
                 @click="signOut"
             >
-                Sign out
+                <IconLogout class="h-5 w-5 shrink-0" />
+                <span v-show="!collapsed">Sign out</span>
             </button>
         </div>
     </aside>
@@ -68,16 +122,27 @@
 <script setup>
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import BrandLogo from '@/components/brand/BrandLogo.vue';
+import { APP_NAME } from '@/constants/brand';
+import IconBooks from '@/components/icons/IconBooks.vue';
+import IconChartBar from '@/components/icons/IconChartBar.vue';
+import IconChevronLeft from '@/components/icons/IconChevronLeft.vue';
+import IconDocument from '@/components/icons/IconDocument.vue';
+import IconExternalLink from '@/components/icons/IconExternalLink.vue';
+import IconLogout from '@/components/icons/IconLogout.vue';
+import IconPlus from '@/components/icons/IconPlus.vue';
 import { useAuthStore } from '../stores/auth';
+import { useAuthorSidebar } from '../composables/useAuthorSidebar';
 import WebThemeToggle from './WebThemeToggle.vue';
 
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+const { collapsed, toggle } = useAuthorSidebar();
 
 const mainNav = [
-    { to: '/author', label: 'Dashboard', icon: '📊', exact: true },
-    { to: '/author/resources', label: 'My Resources', icon: '📚', exact: false },
+    { id: 'dashboard', to: '/author', label: 'Dashboard', icon: IconChartBar },
+    { id: 'resources', to: '/author/resources', label: 'My Resources', icon: IconBooks },
 ];
 
 const initials = computed(() => {
@@ -92,21 +157,27 @@ const roleLabel = computed(() => {
     return 'Author';
 });
 
-const isDraftsActive = computed(() =>
-    route.path === '/author/resources' && route.query.status === 'draft',
-);
+const activeNavKey = computed(() => {
+    const { path, query } = route;
 
-function isNavActive(item) {
-    if (item.exact) {
-        return route.path === item.to;
+    if (path === '/author/resources/new') {
+        return 'new';
     }
 
-    if (item.to === '/author/resources') {
-        return route.path.startsWith('/author/resources') && route.query.status !== 'draft';
+    if (path === '/author/resources' && query.status === 'draft') {
+        return 'drafts';
     }
 
-    return route.path.startsWith(item.to);
-}
+    if (path === '/author/resources' || path.startsWith('/author/resources/')) {
+        return 'resources';
+    }
+
+    if (path === '/author') {
+        return 'dashboard';
+    }
+
+    return null;
+});
 
 async function signOut() {
     await auth.logout();
