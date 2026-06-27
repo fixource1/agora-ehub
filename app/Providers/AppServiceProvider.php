@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use App\Models\Resource;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,7 +25,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configureRateLimiting();
         $this->seedMobileDatabaseWhenEmpty();
+    }
+
+    private function configureRateLimiting(): void
+    {
+        RateLimiter::for('api', function (Request $request) {
+            $key = $request->header('X-Device-Id') ?: $request->ip();
+
+            return Limit::perMinute(600)->by($key);
+        });
+
+        RateLimiter::for('downloads', function (Request $request) {
+            $key = $request->header('X-Device-Id') ?: $request->ip();
+
+            return Limit::perMinute(120)->by($key);
+        });
     }
 
     private function seedMobileDatabaseWhenEmpty(): void

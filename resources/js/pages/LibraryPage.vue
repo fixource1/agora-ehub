@@ -50,7 +50,7 @@
                         <LibraryResourceToolbar
                             class="mb-4 tablet-sidebar:mb-4"
                             :loading="showSkeleton"
-                            :count="filteredResources.length"
+                            :count="resourceCount"
                             :show-recent-hint="library.state.activeSection === 'recent'"
                             :show-sort="showSort"
                             v-model:sort-by="sortBy"
@@ -81,6 +81,17 @@
                                 </div>
                             </template>
                         </ResourceCollection>
+
+                        <div v-if="showLoadMore" class="mt-6 flex justify-center pb-4">
+                            <button
+                                type="button"
+                                class="bg-surface ring-app rounded-xl px-5 py-2.5 text-sm font-medium ring-1"
+                                :disabled="loadingMore"
+                                @click="loadMore"
+                            >
+                                {{ loadingMore ? 'Loading…' : 'Load more' }}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -109,12 +120,31 @@ import { useResourcesList } from '@/composables/useResourcesList';
 
 const router = useRouter();
 const library = useLibrary();
-const { resources, loading, error, load, retry } = useResourcesList();
+const { resources, loading, loadingMore, error, hasMore, total, load, loadMore, setFilters, retry } = useResourcesList();
 const { showSkeleton } = useDelayedLoading(loading);
 const activeFilter = ref('All');
 const sortBy = ref('recent');
 const filters = ['All', 'Guidelines', 'PDFs', 'Videos', 'Audio', 'Others'];
 const offlineResources = ref([]);
+
+const usesServerFilters = computed(() => (
+    library.state.activeSection === 'all' && ! activeCollection.value
+));
+
+const showLoadMore = computed(() => usesServerFilters.value && hasMore.value);
+
+const resourceCount = computed(() => (
+    usesServerFilters.value && total.value != null ? total.value : filteredResources.value.length
+));
+
+const filterApiParams = {
+    All: {},
+    Guidelines: { category: 'guidelines' },
+    PDFs: { type: 'pdf-document' },
+    Videos: { type: 'video' },
+    Audio: { type: 'audio' },
+    Others: { type: 'other' },
+};
 
 const showSort = computed(() => !['recent', 'offline', 'bookmarks', 'notes'].includes(library.state.activeSection));
 
@@ -204,18 +234,20 @@ const filteredResources = computed(() => {
 
     let list = [...source];
 
-    if (activeFilter.value === 'Guidelines') {
-        list = list.filter((r) => r.category?.slug === 'guidelines' || r.category?.name === 'Guidelines');
-    } else if (activeFilter.value === 'Books') {
-        list = list.filter((r) => ['ebook', 'journal'].includes(r.resource_type?.slug));
-    } else if (activeFilter.value === 'PDFs') {
-        list = list.filter((r) => r.resource_type?.slug === 'pdf-document');
-    } else if (activeFilter.value === 'Videos') {
-        list = list.filter((r) => r.resource_type?.slug === 'video');
-    } else if (activeFilter.value === 'Audio') {
-        list = list.filter((r) => r.resource_type?.slug === 'audio');
-    } else if (activeFilter.value === 'Others') {
-        list = list.filter((r) => r.resource_type?.slug === 'other');
+    if (! usesServerFilters.value) {
+        if (activeFilter.value === 'Guidelines') {
+            list = list.filter((r) => r.category?.slug === 'guidelines' || r.category?.name === 'Guidelines');
+        } else if (activeFilter.value === 'Books') {
+            list = list.filter((r) => ['ebook', 'journal'].includes(r.resource_type?.slug));
+        } else if (activeFilter.value === 'PDFs') {
+            list = list.filter((r) => r.resource_type?.slug === 'pdf-document');
+        } else if (activeFilter.value === 'Videos') {
+            list = list.filter((r) => r.resource_type?.slug === 'video');
+        } else if (activeFilter.value === 'Audio') {
+            list = list.filter((r) => r.resource_type?.slug === 'audio');
+        } else if (activeFilter.value === 'Others') {
+            list = list.filter((r) => r.resource_type?.slug === 'other');
+        }
     }
 
     if (sortBy.value === 'title') {
@@ -231,6 +263,22 @@ watch(() => library.state.activeSection, () => {
     document.querySelector('.library-scroll-region')?.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
+watch(activeFilter, (filter) => {
+    if (! usesServerFilters.value) {
+        return;
+    }
+
+    setFilters(filterApiParams[filter] ?? {});
+});
+
+watch(usesServerFilters, (enabled) => {
+    if (enabled) {
+        setFilters(filterApiParams[activeFilter.value] ?? {});
+    } else {
+        load({ force: true, params: {} });
+    }
+});
+
 async function refreshOfflineResources() {
     offlineResources.value = await getAllOfflineResources();
 }
@@ -241,7 +289,9 @@ watch(() => library.state.downloadedSlugs.size, () => {
 
 onMounted(async () => {
     await Promise.all([
-        load(),
+        usesServerFilters.value
+            ? setFilters(filterApiParams[activeFilter.value] ?? {})
+            : load(),
         refreshOfflineResources(),
     ]);
 });

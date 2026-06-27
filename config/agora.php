@@ -19,4 +19,16 @@ return [
         'base_url' => env('MOBILE_API_BASE_URL'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Performance
+    |--------------------------------------------------------------------------
+    */
+
+    'performance' => [
+        'ensure_sample_files_on_download' => (bool) env('AGORA_ENSURE_SAMPLE_FILES_ON_DOWNLOAD', false),
+        'benchmark_output' => storage_path('app/performance/baseline.json'),
+        'simulate_base_url' => env('AGORA_SIMULATE_BASE_URL'),
+    ],
+
 ];

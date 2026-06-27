@@ -17,14 +17,21 @@ class ResourceFileDownloadController extends Controller
         abort_unless($resourceFile->resource_id === $resource->id, 404);
         abort_unless($resourceFile->is_downloadable, 403);
 
-        SampleResourceFiles::ensureForFile($resourceFile);
+        if (config('agora.performance.ensure_sample_files_on_download', false)) {
+            SampleResourceFiles::ensureForFile($resourceFile);
+        }
 
         $disk = Storage::disk($resourceFile->disk);
+
+        abort_unless($disk->exists($resourceFile->file_path), 404);
 
         return $disk->download(
             $resourceFile->file_path,
             $resourceFile->file_name,
-            ['Content-Type' => $resourceFile->mime_type ?? 'application/octet-stream'],
+            [
+                'Content-Type' => $resourceFile->mime_type ?? 'application/octet-stream',
+                'Cache-Control' => 'private, max-age=3600',
+            ],
         );
     }
 }

@@ -8,10 +8,11 @@ use App\Http\Controllers\Api\V1\ResourceController;
 use App\Http\Controllers\Api\V1\ResourceFileDownloadController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware('throttle:api')->group(function () {
     Route::get('resources', [ResourceController::class, 'index']);
     Route::get('resources/{resource:slug}', [ResourceController::class, 'show']);
-    Route::get('resources/{resource:slug}/files/{resourceFile}/download', ResourceFileDownloadController::class);
+    Route::get('resources/{resource:slug}/files/{resourceFile}/download', ResourceFileDownloadController::class)
+        ->middleware('throttle:downloads');
 
     Route::get('downloads', [DownloadController::class, 'index']);
     Route::post('downloads', [DownloadController::class, 'store']);

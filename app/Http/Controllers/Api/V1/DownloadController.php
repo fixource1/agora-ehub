@@ -66,9 +66,17 @@ class DownloadController extends Controller
                 },
             )
             ->latest('downloaded_at')
-            ->get();
+            ->paginate(min(max($request->integer('per_page', 50), 1), 100));
 
-        return response()->json(['data' => $downloads]);
+        return response()->json([
+            'data' => $downloads->items(),
+            'meta' => [
+                'current_page' => $downloads->currentPage(),
+                'last_page' => $downloads->lastPage(),
+                'per_page' => $downloads->perPage(),
+                'total' => $downloads->total(),
+            ],
+        ]);
     }
 
     public function destroy(Request $request, Resource $resource): JsonResponse

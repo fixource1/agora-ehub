@@ -49,13 +49,13 @@
                             <div class="discover-categories scrollbar-hide mt-2">
                                 <button
                                     v-for="cat in categories"
-                                    :key="cat"
+                                    :key="cat.slug"
                                     type="button"
                                     class="bg-surface ring-app rounded-full px-3.5 py-1.5 text-sm ring-1 transition hover:bg-surface-muted sm:px-4 sm:py-2"
-                                    :class="activeCategory === cat ? 'bg-maroon text-white ring-0' : ''"
-                                    @click="activeCategory = activeCategory === cat ? null : cat"
+                                    :class="activeCategory === cat.slug ? 'bg-maroon text-white ring-0' : ''"
+                                    @click="toggleCategory(cat.slug)"
                                 >
-                                    {{ cat }}
+                                    {{ cat.name }}
                                 </button>
                             </div>
                         </section>
@@ -69,7 +69,7 @@
                             />
 
                             <ResourceCollection
-                                :resources="filteredResources"
+                                :resources="resources"
                                 :loading="showSkeleton"
                             >
                                 <template #toolbar>
@@ -77,7 +77,7 @@
                                         <div class="min-w-0">
                                             <h2 class="text-app text-base font-semibold sm:text-lg">Recently Added</h2>
                                             <SkeletonBlock v-if="showSkeleton" class="mt-1 h-3 w-24" />
-                                            <p v-else class="text-muted text-xs sm:text-sm">{{ filteredResources.length }} resources</p>
+                                            <p v-else class="text-muted text-xs sm:text-sm">{{ resources.length }} resources</p>
                                         </div>
                                         <div class="resource-toolbar-actions">
                                             <ResourceViewToggle />
@@ -92,6 +92,17 @@
                                     </div>
                                 </template>
                             </ResourceCollection>
+
+                            <div v-if="hasMore" class="mt-6 flex justify-center pb-4">
+                                <button
+                                    type="button"
+                                    class="bg-surface ring-app rounded-xl px-5 py-2.5 text-sm font-medium ring-1"
+                                    :disabled="loadingMore"
+                                    @click="loadMore"
+                                >
+                                    {{ loadingMore ? 'Loading…' : 'Load more' }}
+                                </button>
+                            </div>
                         </section>
                     </div>
                 </div>
@@ -101,7 +112,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import AppShell from '@/layouts/AppShell.vue';
 import MobileTopBar from '@/components/layout/MobileTopBar.vue';
 import IconSearch from '@/components/icons/IconSearch.vue';
@@ -113,40 +124,48 @@ import { useDelayedLoading } from '@/composables/useDelayedLoading';
 import { useResourcesList } from '@/composables/useResourcesList';
 
 const query = ref('');
-const { resources, loading, error, load, retry } = useResourcesList();
+const { resources, loading, loadingMore, error, hasMore, load, loadMore, setFilters, retry } = useResourcesList();
 const { showSkeleton } = useDelayedLoading(loading);
 const activeCategory = ref(null);
 const searchInput = ref(null);
 const mobileSearchInput = ref(null);
 
-const categories = ['Guidelines', 'Research', 'Training Materials', 'Science', 'Education'];
+const categories = [
+    { name: 'Guidelines', slug: 'guidelines' },
+    { name: 'Research', slug: 'research' },
+    { name: 'Training Materials', slug: 'training-materials' },
+    { name: 'Science', slug: 'science' },
+    { name: 'Education', slug: 'education' },
+];
 
-const filteredResources = computed(() => {
-    let list = [...resources.value];
-    const q = query.value.trim().toLowerCase();
+let searchTimer = null;
 
-    if (q) {
-        list = list.filter((r) =>
-            r.title?.toLowerCase().includes(q)
-            || r.description?.toLowerCase().includes(q)
-            || r.authors?.some((a) => a.name?.toLowerCase().includes(q)),
-        );
+function toggleCategory(slug) {
+    activeCategory.value = activeCategory.value === slug ? null : slug;
+}
+
+function applyFilters() {
+    const params = {};
+
+    if (query.value.trim()) {
+        params.q = query.value.trim();
     }
 
     if (activeCategory.value) {
-        list = list.filter((r) =>
-            r.category?.name?.toLowerCase() === activeCategory.value.toLowerCase(),
-        );
+        params.category = activeCategory.value;
     }
 
-    list.sort((a, b) => new Date(b.published_at ?? b.created_at ?? 0) - new Date(a.published_at ?? a.created_at ?? 0));
-
-    return list;
-});
+    setFilters(params);
+}
 
 function focusSearch() {
     mobileSearchInput.value?.focus();
 }
+
+watch([query, activeCategory], () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(applyFilters, 300);
+});
 
 onMounted(() => load());
 </script>
