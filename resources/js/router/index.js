@@ -12,5 +12,15 @@ const routes = [
 export default createRouter({
     history: createWebHistory(),
     routes,
-    scrollBehavior: () => ({ top: 0 }),
+    scrollBehavior(to, from, savedPosition) {
+        if (savedPosition) {
+            return savedPosition;
+        }
+
+        if (to.name === 'resource.show' && from.name && from.name !== 'resource.show') {
+            return { top: 0 };
+        }
+
+        return { top: 0 };
+    },
 });

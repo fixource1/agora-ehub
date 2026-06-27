@@ -5,7 +5,10 @@ export function useResourceMeta(resource) {
     const typeSlug = computed(() => resource.value?.resource_type?.slug ?? 'other');
     const isVideo = computed(() => typeSlug.value === 'video');
     const isAudio = computed(() => typeSlug.value === 'audio');
-    const typeIcon = computed(() => getResourceTypeIcon(typeSlug.value));
+    const typeIcon = computed(() => getResourceTypeIcon(
+        typeSlug.value,
+        resource.value?.primary_file?.file_type,
+    ));
 
     const fileTypeLabel = computed(() => {
         const ext = resource.value?.primary_file?.file_type?.toUpperCase();

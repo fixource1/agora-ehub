@@ -3,6 +3,13 @@
         :to="{ name: 'resource.show', params: { slug: resource.slug }, state: { resource } }"
         class="resource-list-item bg-surface ring-app group flex items-stretch gap-3 overflow-hidden rounded-xl p-2.5 ring-1 transition hover:bg-surface-muted sm:gap-4 sm:p-3"
         @mouseenter="prefetchResource(resource.slug)"
+        @pointerdown="longPress.onPointerdown"
+        @pointerup="longPress.onPointerup"
+        @pointerleave="longPress.onPointerleave"
+        @pointercancel="longPress.onPointercancel"
+        @pointermove="longPress.onPointermove"
+        @click="longPress.onClick"
+        @contextmenu.prevent="openQuickActions(resource)"
     >
         <div
             class="resource-list-item-cover relative aspect-[3/4] w-14 shrink-0 overflow-hidden rounded-lg sm:w-16"
@@ -13,13 +20,22 @@
                 :alt="resource.title"
                 class="absolute inset-0 h-full w-full object-cover object-top"
             >
-            <ResourceCoverPlaceholder v-else :icon="typeIcon" compact />
+            <ResourceGeneratedCover
+                v-else
+                :icon="typeIcon"
+                :category="resource.category?.slug"
+                :category-name="resource.category?.name"
+                :title="resource.title"
+                :type-slug="resource.resource_type?.slug"
+                :file-type="resource.primary_file?.file_type"
+                compact
+            />
             <span
                 v-if="offline"
                 class="resource-card-offline-badge absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full"
                 title="Available offline"
             >
-                <IconDownload class="h-3 w-3" />
+                <IconCheck class="h-3 w-3" />
             </span>
         </div>
 
@@ -41,10 +57,12 @@
 
 <script setup>
 import { computed, toRef } from 'vue';
-import IconDownload from '@/components/icons/IconDownload.vue';
-import ResourceCoverPlaceholder from '@/components/resources/ResourceCoverPlaceholder.vue';
+import IconCheck from '@/components/icons/IconCheck.vue';
+import ResourceGeneratedCover from '@/components/resources/ResourceGeneratedCover.vue';
 import { useResourceMeta } from '@/composables/useResourceMeta';
 import { useResourceCache } from '@/composables/useResourceCache';
+import { useLongPress } from '@/composables/useLongPress';
+import { useResourceQuickActions } from '@/composables/useResourceQuickActions';
 
 const props = defineProps({
     resource: { type: Object, required: true },
@@ -52,6 +70,8 @@ const props = defineProps({
 });
 
 const { prefetchResource } = useResourceCache();
+const { openQuickActions } = useResourceQuickActions();
+const longPress = useLongPress(() => openQuickActions(props.resource));
 
 const resourceRef = toRef(props, 'resource');
 const { typeIcon, fileTypeLabel, metaLabel } = useResourceMeta(resourceRef);

@@ -23,13 +23,19 @@ function seedFromList(resources) {
     }
 }
 
+function hasDetailData(resource) {
+    return Array.isArray(resource?.authors) || resource?.metadata != null;
+}
+
 async function fetchResource(slug) {
     if (! slug) {
         return null;
     }
 
-    if (cache.has(slug) && cache.get(slug)?.metadata) {
-        return cache.get(slug);
+    const cached = cache.get(slug);
+
+    if (cached && hasDetailData(cached)) {
+        return cached;
     }
 
     if (inflight.has(slug)) {
@@ -54,7 +60,13 @@ async function fetchResource(slug) {
 }
 
 function prefetchResource(slug) {
-    if (! slug || cache.has(slug) || inflight.has(slug)) {
+    if (! slug || inflight.has(slug)) {
+        return;
+    }
+
+    const cached = cache.get(slug);
+
+    if (cached && hasDetailData(cached)) {
         return;
     }
 
@@ -68,5 +80,6 @@ export function useResourceCache() {
         seedFromList,
         fetchResource,
         prefetchResource,
+        hasDetailData,
     };
 }

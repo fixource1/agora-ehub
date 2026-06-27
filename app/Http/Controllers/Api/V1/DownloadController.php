@@ -49,11 +49,50 @@ class DownloadController extends Controller
     {
         $downloads = Download::query()
             ->with(['resource.resourceType', 'resource.files'])
-            ->when($request->user(), fn ($q) => $q->where('user_id', $request->user()->id))
             ->where('status', DownloadStatus::Downloaded)
+            ->when(
+                $request->user(),
+                fn ($query) => $query->where('user_id', $request->user()->id),
+                function ($query) use ($request) {
+                    $deviceId = $request->header('X-Device-Id');
+
+                    if (! $deviceId) {
+                        return $query->whereRaw('1 = 0');
+                    }
+
+                    return $query
+                        ->whereNull('user_id')
+                        ->where('device_id', $deviceId);
+                },
+            )
             ->latest('downloaded_at')
             ->get();
 
         return response()->json(['data' => $downloads]);
+    }
+
+    public function destroy(Request $request, Resource $resource): JsonResponse
+    {
+        $query = Download::query()
+            ->where('resource_id', $resource->id)
+            ->where('status', DownloadStatus::Downloaded);
+
+        if ($request->user()) {
+            $query->where('user_id', $request->user()->id);
+        } else {
+            $deviceId = $request->header('X-Device-Id');
+
+            if (! $deviceId) {
+                return response()->json(['message' => 'Device ID required.'], 422);
+            }
+
+            $query
+                ->whereNull('user_id')
+                ->where('device_id', $deviceId);
+        }
+
+        $query->delete();
+
+        return response()->json(['message' => 'Resource removed from offline library.']);
     }
 }

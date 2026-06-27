@@ -137,7 +137,13 @@ const filters = ['All', 'Guidelines', 'PDFs', 'Videos', 'Audio', 'Others'];
 
 const showSort = computed(() => !['recent', 'offline', 'bookmarks', 'notes'].includes(library.state.activeSection));
 
+const activeCollection = computed(() => library.getActiveCollection());
+
 const sectionTitle = computed(() => {
+    if (activeCollection.value) {
+        return activeCollection.value.name;
+    }
+
     const map = {
         offline: 'Offline',
         all: 'All Resources',
@@ -149,6 +155,10 @@ const sectionTitle = computed(() => {
 });
 
 const sectionSubtitle = computed(() => {
+    if (activeCollection.value) {
+        return 'Resources you saved in this collection';
+    }
+
     const map = {
         offline: 'Available without internet connection',
         all: 'Your personal knowledge collection',
@@ -160,6 +170,14 @@ const sectionSubtitle = computed(() => {
 });
 
 const emptyState = computed(() => {
+    if (activeCollection.value) {
+        return {
+            title: `No resources in ${activeCollection.value.name}`,
+            body: 'Open a resource and use More → Add to collection, or browse Discover to find materials.',
+            showDiscover: true,
+        };
+    }
+
     const map = {
         offline: {
             title: 'No offline resources yet',
@@ -209,7 +227,7 @@ const filteredResources = computed(() => {
 
     if (sortBy.value === 'title') {
         list.sort((a, b) => a.title.localeCompare(b.title));
-    } else if (sortBy.value === 'recent' && library.state.activeSection === 'all') {
+    } else if (sortBy.value === 'recent' && (library.state.activeSection === 'all' || activeCollection.value)) {
         list.sort((a, b) => new Date(b.published_at ?? b.created_at ?? 0) - new Date(a.published_at ?? a.created_at ?? 0));
     }
 

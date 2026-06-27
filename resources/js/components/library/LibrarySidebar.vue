@@ -14,62 +14,97 @@
         </div>
 
         <nav
-            class="flex min-h-0 flex-1 flex-col overflow-hidden px-3"
-            :class="embedded ? 'py-3' : 'overflow-y-auto py-4'"
+            class="flex min-h-0 flex-1 flex-col px-3"
+            :class="embedded ? 'overflow-hidden py-3' : 'overflow-y-auto py-4'"
         >
-            <button
-                v-for="item in navItems"
-                :key="item.id"
-                class="library-nav-item flex w-full shrink-0 items-center justify-between rounded-xl px-3 text-left text-sm transition"
-                :class="[
-                    embedded ? 'mb-0.5 py-2' : 'mb-1 py-3',
-                    library.state.activeSection === item.id
-                        ? 'bg-brand text-white shadow-sm font-medium'
-                        : 'text-app hover:bg-surface-muted',
-                ]"
-                @click="selectSection(item.id)"
-            >
-                <span class="flex min-w-0 items-center gap-3">
-                    <component :is="item.icon" class="library-nav-item-icon h-5 w-5 shrink-0" />
-                    <span class="truncate">{{ item.label }}</span>
-                </span>
-                <span
-                    v-if="item.count != null"
-                    class="library-nav-item-count ml-2 shrink-0 text-xs"
-                    :class="library.state.activeSection === item.id ? 'text-white/90' : 'text-muted'"
+            <div class="shrink-0">
+                <button
+                    v-for="item in navItems"
+                    :key="item.id"
+                    class="library-nav-item flex w-full shrink-0 items-center justify-between rounded-xl px-3 text-left text-sm transition"
+                    :class="[
+                        embedded ? 'mb-0.5 py-2' : 'mb-1 py-3',
+                        library.state.activeSection === item.id
+                            ? 'bg-brand text-white shadow-sm font-medium'
+                            : 'text-app hover:bg-surface-muted',
+                    ]"
+                    @click="selectSection(item.id)"
                 >
-                    {{ item.count }}
-                </span>
-            </button>
+                    <span class="flex min-w-0 items-center gap-3">
+                        <component :is="item.icon" class="library-nav-item-icon h-5 w-5 shrink-0" />
+                        <span class="truncate">{{ item.label }}</span>
+                    </span>
+                    <span
+                        v-if="item.count != null"
+                        class="library-nav-item-count ml-2 shrink-0 text-xs"
+                        :class="library.state.activeSection === item.id ? 'text-white/90' : 'text-muted'"
+                    >
+                        {{ item.count }}
+                    </span>
+                </button>
+            </div>
 
-            <div class="mt-3 shrink-0 px-1" :class="embedded ? '' : 'mt-6 px-3'">
+            <div
+                class="mt-3 flex min-h-0 flex-1 flex-col px-1"
+                :class="embedded ? 'min-h-0' : 'mt-6 px-3'"
+            >
                 <div class="mb-2 flex items-center justify-between gap-2">
                     <p class="text-muted text-xs font-semibold uppercase tracking-wide">Collections</p>
                     <button
                         type="button"
                         class="library-collections-add"
                         aria-label="Add collection"
+                        @click="openCreateModal"
                     >
                         <IconPlus class="h-3.5 w-3.5" />
                     </button>
                 </div>
-                <button
-                    v-for="collection in visibleCollections"
-                    :key="collection.id"
-                    class="text-app hover:bg-surface-muted flex w-full items-center justify-between rounded-lg px-2 text-sm"
-                    :class="embedded ? 'py-1.5' : 'mb-1 py-2'"
-                >
-                    <span class="truncate">{{ collection.name }}</span>
-                    <span class="text-muted ml-2 shrink-0 text-xs">{{ collection.count }}</span>
-                </button>
+                <div class="library-collections-list min-h-0 flex-1 overflow-y-auto">
+                    <p
+                        v-if="library.state.collections.length === 0"
+                        class="text-muted px-2 py-2 text-xs"
+                    >
+                        No collections yet. Create one to organize resources.
+                    </p>
+                    <button
+                        v-for="collection in library.state.collections"
+                        :key="collection.id"
+                        type="button"
+                        :data-collection-id="collection.id"
+                        class="library-nav-item flex w-full items-center justify-between rounded-lg px-2 text-left text-sm transition"
+                        :class="[
+                            embedded ? 'py-1.5' : 'mb-1 py-2',
+                            library.isCollectionActive(collection.id)
+                                ? 'bg-brand text-white shadow-sm font-medium'
+                                : 'text-app hover:bg-surface-muted',
+                        ]"
+                        @click="selectCollection(collection.id)"
+                    >
+                        <span class="truncate">{{ collection.name }}</span>
+                        <span
+                            class="ml-2 shrink-0 text-xs"
+                            :class="library.isCollectionActive(collection.id) ? 'text-white/90' : 'text-muted'"
+                        >
+                            {{ collection.count }}
+                        </span>
+                    </button>
+                </div>
             </div>
         </nav>
+
+        <CreateCollectionModal
+            :open="createModalOpen"
+            @close="createModalOpen = false"
+            @create="handleCreateCollection"
+        />
     </aside>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref } from 'vue';
 import { useLibrary } from '@/composables/useLibrary';
+import { useToast } from '@/composables/useToast';
+import CreateCollectionModal from '@/components/library/CreateCollectionModal.vue';
 import IconBooks from '@/components/icons/IconBooks.vue';
 import BrandLogo from '@/components/brand/BrandLogo.vue';
 import { APP_NAME } from '@/constants/brand';
@@ -84,6 +119,8 @@ const props = defineProps({
 });
 
 const library = useLibrary();
+const { showToast } = useToast();
+const createModalOpen = ref(false);
 
 const navItems = [
     { id: 'offline', label: 'Offline', count: library.state.counts.offline, icon: IconDownload },
@@ -93,14 +130,34 @@ const navItems = [
     { id: 'recent', label: 'Recently Opened', count: library.state.recentSlugs.length, icon: IconClock },
 ];
 
-const visibleCollections = computed(() =>
-    props.embedded
-        ? library.state.collections.slice(0, 3)
-        : library.state.collections,
-);
-
 function selectSection(id) {
     library.setActiveSection(id);
     library.closeDrawer();
+}
+
+function selectCollection(collectionId) {
+    library.selectCollection(collectionId);
+    library.closeDrawer();
+}
+
+function openCreateModal() {
+    createModalOpen.value = true;
+}
+
+function handleCreateCollection(name) {
+    const collection = library.createCollection(name);
+
+    if (! collection) {
+        return;
+    }
+
+    createModalOpen.value = false;
+    library.selectCollection(collection.id);
+    library.closeDrawer();
+    showToast(`Created “${collection.name}”`);
+
+    requestAnimationFrame(() => {
+        document.querySelector(`[data-collection-id="${collection.id}"]`)?.scrollIntoView({ block: 'nearest' });
+    });
 }
 </script>

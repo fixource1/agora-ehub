@@ -13,6 +13,7 @@ Route::prefix('v1')->group(function () {
 
     Route::get('downloads', [DownloadController::class, 'index']);
     Route::post('downloads', [DownloadController::class, 'store']);
+    Route::delete('downloads/{resource:slug}', [DownloadController::class, 'destroy']);
 
     Route::get('lookups/categories', [LookupController::class, 'categories']);
     Route::get('lookups/resource-types', [LookupController::class, 'resourceTypes']);

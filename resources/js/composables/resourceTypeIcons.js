@@ -18,6 +18,27 @@ const RESOURCE_TYPE_ICONS = {
     other: IconArchive,
 };
 
-export function getResourceTypeIcon(slug) {
-    return RESOURCE_TYPE_ICONS[slug] ?? IconArchive;
+const FILE_TYPE_ICONS = {
+    pdf: IconDocument,
+    epub: IconBooks,
+    mp4: IconVideo,
+    mov: IconVideo,
+    webm: IconVideo,
+    mp3: IconAudio,
+    wav: IconAudio,
+    m4a: IconAudio,
+    ppt: IconPresentation,
+    pptx: IconPresentation,
+};
+
+export function getResourceTypeIcon(typeSlug, fileType = null) {
+    if (fileType) {
+        const icon = FILE_TYPE_ICONS[fileType.toLowerCase()];
+
+        if (icon) {
+            return icon;
+        }
+    }
+
+    return RESOURCE_TYPE_ICONS[typeSlug] ?? IconArchive;
 }

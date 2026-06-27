@@ -10,6 +10,7 @@ use App\Models\ResourceMetadata;
 use App\Models\ResourceType;
 use App\Models\Tag;
 use App\Models\User;
+use Database\Seeders\Support\SampleCoverArt;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -181,6 +182,14 @@ class SampleResourceSeeder extends Seeder
 
             $slug = Str::slug($sample['title']);
 
+            $coverImage = SampleCoverArt::ensure(
+                $slug,
+                $sample['title'],
+                $sample['category'],
+                $type->slug,
+                $sample['file']['type'],
+            );
+
             $resource = Resource::query()->updateOrCreate(
                 ['slug' => $slug],
                 [
@@ -190,6 +199,7 @@ class SampleResourceSeeder extends Seeder
                     'title' => $sample['title'],
                     'subtitle' => $sample['subtitle'] ?? null,
                     'description' => $sample['description'],
+                    'cover_image' => $coverImage,
                     'language' => $sample['language'] ?? 'en',
                     'audience_level' => $sample['audience_level'] ?? 'general',
                     'status' => 'published',

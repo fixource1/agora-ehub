@@ -11,7 +11,7 @@
         <div class="page-content-no-nav px-4 pt-6 pb-6 lg:px-8 lg:pt-10 lg:pb-10">
             <div class="lg:grid lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:items-start lg:gap-8 xl:gap-10">
                 <aside class="lg:sticky lg:top-24">
-                    <SkeletonBlock class="mx-auto aspect-square max-w-[220px] rounded-2xl lg:max-w-none" />
+                    <SkeletonBlock class="resource-detail-cover mx-auto aspect-[3/4] w-full max-w-[148px] rounded-2xl sm:max-w-[168px] lg:max-w-[180px]" />
                     <SkeletonBlock class="mx-auto mt-4 h-4 w-32 rounded lg:mx-0" />
                     <SkeletonBlock class="mt-4 h-12 w-full rounded-2xl" />
                     <SkeletonBlock class="mt-3 h-12 w-full rounded-2xl" />

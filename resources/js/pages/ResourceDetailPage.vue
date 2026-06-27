@@ -24,13 +24,9 @@
                 >
                     <IconBack class="h-5 w-5" />
                 </button>
-                <div class="flex items-center gap-2">
-                    <span class="hidden items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 sm:flex dark:bg-emerald-950/40 dark:text-emerald-300">
-                        <IconCloudOffline class="h-4 w-4" />
-                        Available offline
-                    </span>
-                    <button class="bg-surface-muted text-muted flex h-10 w-10 items-center justify-center rounded-full">↗</button>
-                    <button class="bg-surface-muted text-muted flex h-10 w-10 items-center justify-center rounded-full">⋯</button>
+                <div class="relative flex items-center gap-2">
+                    <ResourceShareMenu :resource="resource" />
+                    <ResourceMoreMenu :resource="resource" />
                 </div>
             </header>
 
@@ -38,29 +34,68 @@
                 <div class="lg:grid lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:items-start lg:gap-8 xl:gap-10">
                     <aside class="lg:sticky lg:top-24">
                         <div class="mx-auto max-w-xs lg:mx-0 lg:max-w-none">
-                            <div class="bg-surface-muted relative mx-auto aspect-square max-w-[220px] overflow-hidden rounded-2xl shadow-lg lg:max-w-none">
+                            <div class="resource-detail-cover relative mx-auto aspect-[3/4] w-full max-w-[148px] overflow-hidden rounded-2xl shadow-lg sm:max-w-[168px] lg:max-w-[180px]">
                                 <img
                                     v-if="resource.cover_image"
                                     :src="resource.cover_image"
                                     :alt="resource.title"
-                                    class="h-full w-full object-cover"
+                                    class="h-full w-full object-cover object-top"
+                                    :class="{ 'resource-detail-cover__media--downloading': downloading }"
                                 >
-                                <span
-                                    v-if="isOffline"
-                                    class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-sm text-white"
-                                >✓</span>
+                                <ResourceGeneratedCover
+                                    v-else
+                                    :icon="typeIcon"
+                                    :category="resource.category?.slug"
+                                    :category-name="resource.category?.name"
+                                    :title="resource.title"
+                                    :type-slug="resource.resource_type?.slug"
+                                    :file-type="resource.primary_file?.file_type"
+                                    show-title
+                                    :class="{ 'resource-detail-cover__media--downloading': downloading }"
+                                />
+
+                                <Transition name="cover-badge">
+                                    <div
+                                        v-if="coverDownloadState !== 'idle'"
+                                        class="resource-detail-cover__download-badge absolute right-2 top-2 z-20 sm:right-2.5 sm:top-2.5"
+                                    >
+                                        <CircularDownloadControl
+                                            :state="coverDownloadState"
+                                            :progress="downloadProgress"
+                                            size="md"
+                                            variant="cover"
+                                            :aria-label="coverDownloadAriaLabel"
+                                            @click="handleCoverDownloadClick"
+                                        />
+                                    </div>
+                                </Transition>
                             </div>
 
                             <p class="text-muted mt-4 text-center text-sm lg:text-left">{{ fileMeta }}</p>
 
                             <button
-                                class="bg-brand mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-base font-semibold text-white shadow-lg"
-                                @click="toggleOffline"
+                                class="bg-brand mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl px-4 py-3.5 text-base font-semibold text-white shadow-lg transition disabled:cursor-not-allowed disabled:opacity-90"
+                                type="button"
+                                @click="handleDownloadButtonClick"
                             >
-                                {{ isOffline ? 'Remove from Device' : 'Download for Offline' }}
+                                <CircularDownloadControl
+                                    v-if="downloading"
+                                    state="downloading"
+                                    :progress="downloadProgress"
+                                    size="sm"
+                                    variant="button"
+                                    aria-label="Cancel download"
+                                    class="pointer-events-none shrink-0"
+                                />
+                                <IconCheck v-else-if="isOffline" class="h-5 w-5 shrink-0" />
+                                <IconDownload v-else class="h-5 w-5 shrink-0" />
+                                {{ downloadButtonLabel }}
                             </button>
 
-                            <button class="bg-surface ring-app text-app mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 font-medium ring-1">
+                            <button
+                                class="bg-surface ring-app text-app mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 font-medium ring-1"
+                                type="button"
+                            >
                                 Open <span class="text-muted">▾</span>
                             </button>
 
@@ -115,27 +150,16 @@
                             </button>
                         </div>
 
-                        <div class="bg-surface ring-app overflow-hidden rounded-2xl ring-1 lg:hidden">
-                            <h2 class="border-app border-b px-4 py-3 text-sm font-semibold">Information</h2>
-                            <dl>
+                        <div
+                            id="resource-information"
+                            class="bg-surface ring-app scroll-mt-28 overflow-hidden rounded-2xl ring-1 lg:scroll-mt-32"
+                        >
+                            <h2 class="border-app border-b px-4 py-3 text-sm font-semibold lg:px-6 lg:py-4">Information</h2>
+                            <dl class="grid gap-0 lg:grid-cols-2">
                                 <div
                                     v-for="row in infoRows"
                                     :key="row.label"
-                                    class="border-app grid grid-cols-[110px_1fr] gap-3 border-b px-4 py-3 text-sm last:border-0"
-                                >
-                                    <dt class="text-muted">{{ row.label }}</dt>
-                                    <dd class="text-app font-medium">{{ row.value }}</dd>
-                                </div>
-                            </dl>
-                        </div>
-
-                        <div class="bg-surface ring-app hidden overflow-hidden rounded-2xl ring-1 lg:block">
-                            <h2 class="border-app border-b px-6 py-4 text-sm font-semibold">Information</h2>
-                            <dl class="grid gap-0 sm:grid-cols-2">
-                                <div
-                                    v-for="row in infoRows"
-                                    :key="row.label"
-                                    class="border-app grid grid-cols-[120px_1fr] gap-3 border-b px-6 py-4 text-sm last:border-0"
+                                    class="border-app grid grid-cols-[110px_1fr] gap-3 border-b px-4 py-3 text-sm last:border-0 lg:grid-cols-[120px_1fr] lg:px-6 lg:py-4"
                                 >
                                     <dt class="text-muted">{{ row.label }}</dt>
                                     <dd class="text-app font-medium">{{ row.value }}</dd>
@@ -145,24 +169,6 @@
                     </div>
 
                     <aside class="mt-8 space-y-4 lg:sticky lg:top-24 lg:mt-0">
-                        <div class="bg-surface ring-app rounded-2xl p-4 ring-1 lg:p-5">
-                            <div class="flex items-start gap-3">
-                                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300">✓</span>
-                                <div class="flex-1">
-                                    <p class="font-semibold">Offline</p>
-                                    <p class="text-muted mt-1 text-sm">
-                                        {{ isOffline ? 'Available without an internet connection.' : 'Download to read without internet.' }}
-                                    </p>
-                                    <button
-                                        class="border-app text-app mt-3 w-full rounded-xl border px-4 py-2.5 text-sm font-medium"
-                                        @click="toggleOffline"
-                                    >
-                                        {{ isOffline ? 'Remove from Device' : 'Download for Offline' }}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
                         <div class="bg-surface ring-app overflow-hidden rounded-2xl ring-1">
                             <h2 class="border-app border-b px-4 py-3 text-sm font-semibold lg:px-5">You might also like</h2>
                             <div class="divide-app divide-y">
@@ -176,7 +182,9 @@
                                         <p class="truncate text-sm font-medium">{{ related.title }}</p>
                                         <p class="text-muted truncate text-xs">{{ related.author }}</p>
                                     </div>
-                                    <button class="text-brand">↓</button>
+                                    <button class="text-brand flex h-8 w-8 shrink-0 items-center justify-center" type="button" aria-label="Download">
+                                        <IconDownload class="h-4 w-4" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -186,13 +194,19 @@
                             <div
                                 v-for="file in resource.files"
                                 :key="file.id"
-                                class="flex items-center justify-between px-4 py-3 lg:px-5"
+                                class="flex items-center justify-between gap-3 px-4 py-3 lg:px-5"
                             >
                                 <div class="min-w-0">
                                     <p class="truncate text-sm font-medium">{{ file.file_name }}</p>
                                     <p class="text-muted text-xs">{{ formatSize(file.file_size) }}</p>
                                 </div>
-                                <button class="text-brand">↓</button>
+                                <span
+                                    v-if="isOffline && file.is_primary"
+                                    class="text-brand shrink-0"
+                                    title="Available offline"
+                                >
+                                    <IconCheck class="h-4 w-4" />
+                                </span>
                             </div>
                         </div>
                     </aside>
@@ -203,52 +217,83 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppShell from '@/layouts/AppShell.vue';
 import ResourceDetailSkeleton from '@/components/resources/ResourceDetailSkeleton.vue';
+import ResourceGeneratedCover from '@/components/resources/ResourceGeneratedCover.vue';
+import ResourceShareMenu from '@/components/resources/ResourceShareMenu.vue';
+import ResourceMoreMenu from '@/components/resources/ResourceMoreMenu.vue';
+import CircularDownloadControl from '@/components/resources/CircularDownloadControl.vue';
 import IconBack from '@/components/icons/IconBack.vue';
-import IconCloudOffline from '@/components/icons/IconCloudOffline.vue';
 import IconBookmark from '@/components/icons/IconBookmark.vue';
+import IconCheck from '@/components/icons/IconCheck.vue';
+import IconDownload from '@/components/icons/IconDownload.vue';
 import { useLibrary } from '@/composables/useLibrary';
 import { useResourceCache } from '@/composables/useResourceCache';
 import { useDelayedLoading } from '@/composables/useDelayedLoading';
+import { useResourceMeta } from '@/composables/useResourceMeta';
 
 const route = useRoute();
 const router = useRouter();
 const library = useLibrary();
-const { getResource, fetchResource } = useResourceCache();
+const { getResource, fetchResource, hasDetailData } = useResourceCache();
 
-const resource = ref(null);
-const loading = ref(true);
+function resolveInitialResource(slug = route.params.slug) {
+    const fromState = history.state?.resource;
+    const fromCache = getResource(slug);
+
+    if (fromState?.slug === slug && fromCache) {
+        return hasDetailData(fromCache) ? fromCache : fromState;
+    }
+
+    if (fromState?.slug === slug) {
+        return fromState;
+    }
+
+    return fromCache;
+}
+
+const resource = ref(resolveInitialResource());
+const loading = ref(! resource.value);
 const error = ref(null);
 const showFullDescription = ref(false);
+const downloading = ref(false);
+const downloadProgress = ref(0);
+let progressInterval = null;
+let downloadAbortController = null;
+const { typeIcon } = useResourceMeta(resource);
 
 const needsSkeleton = computed(() => loading.value && ! resource.value);
 const { showSkeleton } = useDelayedLoading(needsSkeleton);
 
-function resolveInitialResource() {
-    return history.state?.resource ?? getResource(route.params.slug);
-}
-
 async function loadResource(slug) {
     error.value = null;
-    const cached = resolveInitialResource();
+    const cached = resolveInitialResource(slug);
 
     if (cached) {
         resource.value = cached;
         loading.value = false;
-    } else {
-        loading.value = true;
+
+        if (! hasDetailData(cached)) {
+            try {
+                resource.value = await fetchResource(slug);
+            } catch {
+                if (! resource.value) {
+                    error.value = 'Could not load this resource. Check your connection and try again.';
+                }
+            }
+        }
+
+        return;
     }
 
+    loading.value = true;
+
     try {
-        const detail = await fetchResource(slug);
-        resource.value = detail;
+        resource.value = await fetchResource(slug);
     } catch {
-        if (! resource.value) {
-            error.value = 'Could not load this resource. Check your connection and try again.';
-        }
+        error.value = 'Could not load this resource. Check your connection and try again.';
     } finally {
         loading.value = false;
     }
@@ -256,6 +301,38 @@ async function loadResource(slug) {
 
 const isOffline = computed(() => resource.value && library.isDownloaded(resource.value.slug));
 const primaryAuthor = computed(() => resource.value?.authors?.[0]?.name ?? null);
+
+const downloadButtonLabel = computed(() => {
+    if (downloading.value) {
+        return 'Downloading…';
+    }
+
+    return isOffline.value ? 'Remove from Device' : 'Download for Offline';
+});
+
+const coverDownloadState = computed(() => {
+    if (downloading.value) {
+        return 'downloading';
+    }
+
+    if (isOffline.value) {
+        return 'completed';
+    }
+
+    return 'idle';
+});
+
+const coverDownloadAriaLabel = computed(() => {
+    if (downloading.value) {
+        return 'Cancel download';
+    }
+
+    if (isOffline.value) {
+        return 'Available offline';
+    }
+
+    return 'Download';
+});
 
 const fileMeta = computed(() => {
     const file = resource.value?.primary_file;
@@ -296,25 +373,114 @@ function formatSize(bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function toggleOffline() {
-    if (!resource.value) return;
-    if (isOffline.value) {
-        library.state.downloadedSlugs.delete(resource.value.slug);
-    } else {
+function clearDownloadTimers() {
+    if (progressInterval) {
+        window.clearInterval(progressInterval);
+        progressInterval = null;
+    }
+}
+
+function cancelDownload() {
+    downloadAbortController?.abort();
+    clearDownloadTimers();
+    downloading.value = false;
+    downloadProgress.value = 0;
+    downloadAbortController = null;
+}
+
+async function removeOffline() {
+    if (! resource.value) {
+        return;
+    }
+
+    library.unmarkDownloaded(resource.value.slug);
+
+    try {
+        await window.axios.delete(`/api/v1/downloads/${resource.value.slug}`);
+    } catch {
         library.markDownloaded(resource.value.slug);
-        window.axios.post('/api/v1/downloads', { resource_id: resource.value.id }).catch(() => {});
+    }
+}
+
+async function startDownload() {
+    if (! resource.value || downloading.value) {
+        return;
+    }
+
+    downloading.value = true;
+    downloadProgress.value = 0;
+    downloadAbortController = new AbortController();
+
+    progressInterval = window.setInterval(() => {
+        if (downloadProgress.value < 88) {
+            downloadProgress.value = Math.min(88, downloadProgress.value + 2 + Math.random() * 5);
+        }
+    }, 100);
+
+    try {
+        await window.axios.post(
+            '/api/v1/downloads',
+            { resource_id: resource.value.id },
+            { signal: downloadAbortController.signal },
+        );
+
+        downloadProgress.value = 100;
+        await new Promise((resolve) => window.setTimeout(resolve, 250));
+        library.markDownloaded(resource.value.slug);
+    } catch (error) {
+        const wasCancelled = error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError';
+
+        if (! wasCancelled) {
+            downloadProgress.value = 0;
+        }
+    } finally {
+        clearDownloadTimers();
+        downloading.value = false;
+        downloadAbortController = null;
+
+        if (! library.isDownloaded(resource.value.slug)) {
+            downloadProgress.value = 0;
+        }
+    }
+}
+
+function handleDownloadButtonClick() {
+    if (downloading.value) {
+        cancelDownload();
+
+        return;
+    }
+
+    if (isOffline.value) {
+        removeOffline();
+
+        return;
+    }
+
+    startDownload();
+}
+
+function handleCoverDownloadClick() {
+    if (downloading.value) {
+        cancelDownload();
     }
 }
 
 onMounted(() => loadResource(route.params.slug));
+
+onBeforeUnmount(() => {
+    cancelDownload();
+});
 
 watch(() => route.params.slug, (slug) => {
     if (! slug) {
         return;
     }
 
+    cancelDownload();
+    showFullDescription.value = false;
     error.value = null;
-    resource.value = resolveInitialResource();
+    resource.value = resolveInitialResource(slug);
     loading.value = ! resource.value;
     loadResource(slug);
 });
