@@ -93,6 +93,7 @@ services:
   node:
     image: node:22-alpine
     container_name: AGORA_e-HUB-node
+    user: "${UID:-1000}:${GID:-1000}"
     working_dir: /var/www/html
     volumes:
       - ./:/var/www/html

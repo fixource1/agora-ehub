@@ -24,7 +24,7 @@ if [[ -z "$node_path" ]] || is_windows_path "$node_path"; then
     fi
 
     quoted="$(printf '%q ' "$@")"
-    exec docker compose --profile dev run --rm node sh -c "npm install && node ${quoted}"
+    exec docker compose --profile dev run --rm --user "$(id -u):$(id -g)" node sh -c "npm install && node ${quoted}"
 fi
 
 exec node "$@"

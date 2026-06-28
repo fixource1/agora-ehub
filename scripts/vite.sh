@@ -34,7 +34,7 @@ if [[ "$use_docker" == true ]]; then
     fi
 
     quoted="$(printf '%q ' "${args[@]}")"
-    exec docker compose --profile dev run --rm node sh -c "npm install && npx vite ${quoted}"
+    exec docker compose --profile dev run --rm --user "$(id -u):$(id -g)" node sh -c "npm install && npx vite ${quoted}"
 fi
 
 exec "$ROOT/node_modules/.bin/vite" "$@"
