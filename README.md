@@ -22,8 +22,10 @@ docker compose exec app php artisan key:generate
 docker compose exec app php artisan migrate --seed
 docker compose exec app php artisan storage:link
 
-npm install && npm run build
+./build
 ```
+
+**WSL note:** Do not run `npm run build` from WSL if `which npm` points to `/mnt/c/Program Files/nodejs` — Windows npm cannot use Linux project paths. Use `./build` (Docker) or `scripts\\build-frontend-windows.cmd` from Windows.
 
 Optional dev server:
 
