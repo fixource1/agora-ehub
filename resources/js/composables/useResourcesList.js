@@ -25,6 +25,10 @@ function buildParams(extra = {}) {
     };
 }
 
+function paramsEqual(left, right) {
+    return JSON.stringify(left ?? {}) === JSON.stringify(right ?? {});
+}
+
 export function useResourcesList() {
     const { seedFromList } = useResourceCache();
 
@@ -103,9 +107,22 @@ export function useResourcesList() {
         return inflight;
     }
 
-    function setFilters(params) {
-        queryParams.value = { ...params };
+    function setFilters(params, { force = false } = {}) {
+        const next = { ...params };
+
+        if (! force && state.loaded && paramsEqual(queryParams.value, next)) {
+            return Promise.resolve(state.resources);
+        }
+
+        queryParams.value = next;
         state.loaded = false;
+        state.nextCursor = null;
+        state.hasMore = false;
+
+        return load({ force: true });
+    }
+
+    function refresh() {
         state.nextCursor = null;
         state.hasMore = false;
 
@@ -140,6 +157,7 @@ export function useResourcesList() {
         load,
         loadMore,
         setFilters,
+        refresh,
         retry,
     };
 }

@@ -106,4 +106,38 @@ class ResourceCatalogApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data');
     }
+
+    public function test_resources_show_includes_description_and_metadata(): void
+    {
+        $this->seed([ResourceTypeSeeder::class, CategorySeeder::class]);
+
+        $user = User::factory()->create();
+        $pdfType = ResourceType::query()->where('slug', 'pdf-document')->first();
+        $guidelines = Category::query()->where('slug', 'guidelines')->first();
+
+        $resource = Resource::query()->create([
+            'uploader_id' => $user->id,
+            'resource_type_id' => $pdfType->id,
+            'category_id' => $guidelines->id,
+            'title' => 'OVCRE Annual Research Forum Proceedings',
+            'slug' => 'ovcre-annual-research-forum-proceedings',
+            'description' => 'Compiled proceedings from the UPLB OVCRE Annual Research Forum.',
+            'language' => 'English',
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+
+        $resource->metadata()->create([
+            'publisher' => 'UPLB OVCRE',
+            'publication_date' => '2024-01-15',
+            'isbn' => '978-971-547-000-0',
+        ]);
+
+        $this->getJson("/api/v1/resources/{$resource->slug}")
+            ->assertOk()
+            ->assertJsonPath('data.description', 'Compiled proceedings from the UPLB OVCRE Annual Research Forum.')
+            ->assertJsonPath('data.language', 'English')
+            ->assertJsonPath('data.metadata.publisher', 'UPLB OVCRE')
+            ->assertJsonPath('data.metadata.isbn', '978-971-547-000-0');
+    }
 }

@@ -1,8 +1,12 @@
 <template>
     <AppShell>
-        <HomeHeader />
+        <HomeHeader class="shrink-0" />
 
-        <div class="page-content mx-auto max-w-5xl px-4 pt-5 pb-4 md:px-8 md:pt-6">
+        <PullToRefresh
+            class="min-h-0 flex-1"
+            scroll-class="home-scroll page-content mx-auto w-full max-w-5xl px-4 pt-5 pb-4 md:px-8 md:pt-6"
+            :on-refresh="handleRefresh"
+        >
             <div class="home-hero overflow-hidden rounded-3xl p-6 shadow-lg md:p-8">
                 <h2 class="text-2xl font-bold leading-tight text-white md:text-3xl">
                     {{ APP_HERO_HEADLINE }}
@@ -66,7 +70,7 @@
                 see-all-label="Browse all"
                 @see-all="router.push('/discover')"
             />
-        </div>
+        </PullToRefresh>
     </AppShell>
 </template>
 
@@ -78,15 +82,18 @@ import HomeHeader from '@/components/layout/HomeHeader.vue';
 import HomeResourceRail from '@/components/home/HomeResourceRail.vue';
 import HomeStatsSkeleton from '@/components/skeleton/HomeStatsSkeleton.vue';
 import LoadErrorBanner from '@/components/ui/LoadErrorBanner.vue';
+import PullToRefresh from '@/components/ui/PullToRefresh.vue';
 import { useDelayedLoading } from '@/composables/useDelayedLoading';
 import { useLibrary } from '@/composables/useLibrary';
 import { getAllOfflineResources } from '@/composables/useOfflineStore';
 import { useResourcesList } from '@/composables/useResourcesList';
 import { APP_HERO_HEADLINE, APP_TAGLINE } from '@/constants/brand';
 
+defineOptions({ name: 'HomePage' });
+
 const router = useRouter();
 const library = useLibrary();
-const { resources, loading, error, load, retry } = useResourcesList();
+const { resources, loading, error, load, refresh, retry, loaded } = useResourcesList();
 const { showSkeleton } = useDelayedLoading(loading);
 const offlineOnlyResources = ref([]);
 
@@ -113,12 +120,23 @@ function openLibrary(section) {
     router.push('/library');
 }
 
-onMounted(async () => {
+async function refreshOfflineResources() {
+    offlineOnlyResources.value = await getAllOfflineResources();
+}
+
+async function handleRefresh() {
     await Promise.all([
-        load(),
-        getAllOfflineResources().then((items) => {
-            offlineOnlyResources.value = items;
-        }),
+        refresh(),
+        refreshOfflineResources(),
+        library.syncDownloads(),
     ]);
+}
+
+onMounted(async () => {
+    if (! loaded.value) {
+        await load();
+    }
+
+    await refreshOfflineResources();
 });
 </script>

@@ -1,37 +1,49 @@
 <template>
-    <div class="resource-sort-select bg-surface ring-app relative inline-flex h-9 items-center rounded-xl ring-1">
-        <label :for="selectId" class="sr-only">Sort resources</label>
-        <select
-            :id="selectId"
-            :value="modelValue"
-            class="resource-sort-select-input text-app h-full min-w-[5.25rem] cursor-pointer appearance-none bg-transparent pl-3 pr-7 text-xs font-medium outline-none sm:min-w-[5.5rem] sm:text-sm"
-            @change="$emit('update:modelValue', $event.target.value)"
-        >
-            <option
+    <ActionMenu
+        aria-label="Sort resources"
+        align="right"
+        title="Sort by"
+        trigger-class="resource-sort-select tap-feedback"
+    >
+        <template #trigger>
+            <span class="resource-sort-select__label">{{ selectedLabel }}</span>
+            <svg
+                class="resource-sort-select__chevron"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+                aria-hidden="true"
+            >
+                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+        </template>
+
+        <template #default="{ close }">
+            <button
                 v-for="option in options"
                 :key="option.value"
-                :value="option.value"
+                type="button"
+                class="action-menu__item"
+                role="menuitemradio"
+                :aria-checked="modelValue === option.value"
+                @click="select(option.value, close)"
             >
+                <span class="action-menu__item-check">
+                    <IconCheck v-if="modelValue === option.value" class="h-4 w-4" />
+                </span>
                 {{ option.label }}
-            </option>
-        </select>
-        <svg
-            class="text-muted pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            aria-hidden="true"
-        >
-            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-        </svg>
-    </div>
+            </button>
+        </template>
+    </ActionMenu>
 </template>
 
 <script setup>
-import { useId } from 'vue';
+import { computed } from 'vue';
+import ActionMenu from '@/components/ui/ActionMenu.vue';
+import IconCheck from '@/components/icons/IconCheck.vue';
 
-defineProps({
+const props = defineProps({
     modelValue: { type: String, required: true },
     options: {
         type: Array,
@@ -42,7 +54,17 @@ defineProps({
     },
 });
 
-defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue']);
 
-const selectId = useId();
+const selectedLabel = computed(() => {
+    return props.options.find((option) => option.value === props.modelValue)?.label ?? 'Sort';
+});
+
+function select(value, close) {
+    if (value !== props.modelValue) {
+        emit('update:modelValue', value);
+    }
+
+    close();
+}
 </script>

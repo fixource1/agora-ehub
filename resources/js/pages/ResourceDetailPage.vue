@@ -17,30 +17,33 @@
         </div>
 
         <template v-else-if="resource">
-            <header class="safe-top bg-surface border-app sticky top-0 z-20 flex items-center justify-between border-b px-4 pb-4 pt-1 lg:px-8 lg:pb-5">
-                <button
-                    class="bg-surface-muted flex h-10 w-10 items-center justify-center rounded-full"
-                    @click="router.push('/library')"
-                >
-                    <IconBack class="h-5 w-5" />
-                </button>
-                <div class="relative flex items-center gap-2">
-                    <ResourceShareMenu :resource="resource" />
-                    <ResourceMoreMenu :resource="resource" />
-                </div>
-            </header>
+            <div class="resource-detail-page flex min-h-0 flex-1 flex-col overflow-hidden">
+                <header class="safe-top bg-surface border-app shrink-0 z-20 flex items-center justify-between border-b px-4 pb-4 pt-1 lg:px-8 lg:pb-5">
+                    <button
+                        class="bg-surface-muted flex h-10 w-10 items-center justify-center rounded-full"
+                        @click="router.push('/library')"
+                    >
+                        <IconBack class="h-5 w-5" />
+                    </button>
+                    <div class="relative flex items-center gap-2">
+                        <ResourceShareMenu :resource="resource" />
+                        <ResourceMoreMenu :resource="resource" />
+                    </div>
+                </header>
 
-            <div class="page-content-no-nav px-4 pt-6 pb-6 lg:px-8 lg:pt-10 lg:pb-10">
-                <div class="lg:grid lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:items-start lg:gap-8 xl:gap-10">
-                    <aside class="lg:sticky lg:top-24">
+                <div class="resource-detail-scroll min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
+                    <div class="page-content-no-nav px-4 pt-6 pb-6 lg:px-8 lg:pt-10 lg:pb-10">
+                        <div class="lg:grid lg:grid-cols-[280px_minmax(0,1fr)_320px] lg:items-start lg:gap-8 xl:gap-10">
+                            <aside class="lg:sticky lg:top-6">
                         <div class="mx-auto max-w-xs lg:mx-0 lg:max-w-none">
                             <div class="resource-detail-cover relative mx-auto aspect-[3/4] w-full max-w-[148px] overflow-hidden rounded-2xl shadow-lg sm:max-w-[168px] lg:max-w-[180px]">
                                 <img
-                                    v-if="resource.cover_image"
-                                    :src="resource.cover_image"
+                                    v-if="showCoverImage"
+                                    :src="coverImageUrl"
                                     :alt="resource.title"
-                                    class="h-full w-full object-cover object-top"
+                                    class="h-full w-full object-cover object-center"
                                     :class="{ 'resource-detail-cover__media--downloading': downloading }"
+                                    @error="coverImageFailed = true"
                                 >
                                 <ResourceGeneratedCover
                                     v-else
@@ -177,25 +180,20 @@
                         </div>
                     </div>
 
-                    <aside class="mt-8 space-y-4 lg:sticky lg:top-24 lg:mt-0">
+                            <aside class="mt-8 space-y-4 lg:sticky lg:top-6 lg:mt-0">
                         <div class="bg-surface ring-app overflow-hidden rounded-2xl ring-1">
                             <h2 class="border-app border-b px-4 py-3 text-sm font-semibold lg:px-5">You might also like</h2>
-                            <div class="divide-app divide-y">
-                                <div
-                                    v-for="related in relatedResources"
-                                    :key="related.title"
-                                    class="flex items-center gap-3 px-4 py-3 lg:px-5"
-                                >
-                                    <div class="bg-surface-muted h-12 w-9 shrink-0 rounded" />
-                                    <div class="min-w-0 flex-1">
-                                        <p class="truncate text-sm font-medium">{{ related.title }}</p>
-                                        <p class="text-muted truncate text-xs">{{ related.author }}</p>
-                                    </div>
-                                    <button class="text-brand flex h-8 w-8 shrink-0 items-center justify-center" type="button" aria-label="Download">
-                                        <IconDownload class="h-4 w-4" />
-                                    </button>
-                                </div>
+                            <div v-if="relatedLoading" class="px-4 py-6 lg:px-5">
+                                <p class="text-muted text-sm">Loading suggestions…</p>
                             </div>
+                            <div v-else-if="relatedResources.length" class="divide-app divide-y">
+                                <ResourceRelatedItem
+                                    v-for="related in relatedResources"
+                                    :key="related.slug"
+                                    :resource="related"
+                                />
+                            </div>
+                            <p v-else class="text-muted px-4 py-6 text-sm lg:px-5">No related resources yet.</p>
                         </div>
 
                         <div v-if="resource.files?.length" class="bg-surface ring-app overflow-hidden rounded-2xl ring-1">
@@ -219,6 +217,8 @@
                             </div>
                         </div>
                     </aside>
+                        </div>
+                    </div>
                 </div>
             </div>
         </template>
@@ -226,11 +226,12 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppShell from '@/layouts/AppShell.vue';
 import ResourceDetailSkeleton from '@/components/resources/ResourceDetailSkeleton.vue';
 import ResourceGeneratedCover from '@/components/resources/ResourceGeneratedCover.vue';
+import ResourceRelatedItem from '@/components/resources/ResourceRelatedItem.vue';
 import ResourceShareMenu from '@/components/resources/ResourceShareMenu.vue';
 import ResourceMoreMenu from '@/components/resources/ResourceMoreMenu.vue';
 import CircularDownloadControl from '@/components/resources/CircularDownloadControl.vue';
@@ -244,12 +245,13 @@ import { getOfflineResource } from '@/composables/useOfflineStore';
 import { useResourceCache } from '@/composables/useResourceCache';
 import { useDelayedLoading } from '@/composables/useDelayedLoading';
 import { useResourceMeta } from '@/composables/useResourceMeta';
+import { useResourceCover } from '@/composables/useResourceCover';
 
 const route = useRoute();
 const router = useRouter();
 const library = useLibrary();
 const { downloadResource, removeDownload } = useOfflineDownload();
-const { getResource, fetchResource, hasDetailData, setResource } = useResourceCache();
+const { getResource, fetchResource, hasDetailData, setResource, seedFromList } = useResourceCache();
 
 function resolveInitialResource(slug = route.params.slug) {
     const fromState = history.state?.resource;
@@ -267,6 +269,8 @@ function resolveInitialResource(slug = route.params.slug) {
 }
 
 const resource = ref(resolveInitialResource());
+const resourceRef = computed(() => resource.value);
+const { coverImageUrl, showCoverImage, coverImageFailed } = useResourceCover(resourceRef);
 const loading = ref(! resource.value);
 const error = ref(null);
 const showFullDescription = ref(false);
@@ -299,6 +303,8 @@ async function loadResource(slug) {
             }
         }
 
+        await loadRelatedResources(resource.value);
+
         return;
     }
 
@@ -316,6 +322,8 @@ async function loadResource(slug) {
             }
         }
 
+        await loadRelatedResources(resource.value);
+
         return;
     }
 
@@ -323,6 +331,7 @@ async function loadResource(slug) {
 
     try {
         resource.value = await fetchResource(slug);
+        await loadRelatedResources(resource.value);
     } catch {
         error.value = 'Could not load this resource. Check your connection and try again.';
     } finally {
@@ -395,10 +404,38 @@ const infoRows = computed(() => [
     { label: 'ISBN', value: resource.value?.metadata?.isbn ?? '—' },
 ]);
 
-const relatedResources = [
-    { title: 'REPS Guidelines Handbook', author: 'Rosalie Orma' },
-    { title: 'DOST GIA Monitoring and Evaluation Manual', author: 'Czarlina May Magnata' },
-];
+const relatedResources = ref([]);
+const relatedLoading = ref(false);
+
+async function loadRelatedResources(current) {
+    if (! current?.slug) {
+        relatedResources.value = [];
+
+        return;
+    }
+
+    relatedLoading.value = true;
+
+    try {
+        const params = { per_page: 8 };
+
+        if (current.category?.slug) {
+            params.category = current.category.slug;
+        }
+
+        const { data } = await window.axios.get('/resources', { params });
+
+        relatedResources.value = (data.data ?? [])
+            .filter((item) => item.slug !== current.slug)
+            .slice(0, 4);
+
+        seedFromList(relatedResources.value);
+    } catch {
+        relatedResources.value = [];
+    } finally {
+        relatedLoading.value = false;
+    }
+}
 
 function formatSize(bytes) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;

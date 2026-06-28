@@ -5,9 +5,7 @@
             :class="embedded ? 'safe-top px-4 pb-3 pt-3' : 'safe-top px-5 pb-4 pt-4'"
         >
             <div class="flex items-center gap-3">
-                <div class="library-sidebar__brand-icon shrink-0">
-                    <BrandLogo size="md" />
-                </div>
+                <BrandLogo size="md" class="library-sidebar__brand-logo shrink-0" />
                 <div class="min-w-0">
                     <p class="font-display text-app truncate text-base font-semibold leading-tight lg:text-lg">My Library</p>
                     <p class="text-muted truncate text-xs">{{ APP_NAME }}</p>

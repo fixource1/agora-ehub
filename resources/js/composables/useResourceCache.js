@@ -25,7 +25,7 @@ function seedFromList(resources) {
 }
 
 function hasDetailData(resource) {
-    return Array.isArray(resource?.authors) || resource?.metadata != null;
+    return resource != null && Object.prototype.hasOwnProperty.call(resource, 'description');
 }
 
 async function fetchResource(slug) {

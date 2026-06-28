@@ -57,7 +57,10 @@
                         />
                     </div>
 
-                    <div class="library-scroll-region px-4 pb-page-nav tablet-sidebar:px-4 lg:px-6 xl:px-8">
+                    <PullToRefresh
+                        class="library-scroll-region px-4 pb-page-nav tablet-sidebar:px-4 lg:px-6 xl:px-8"
+                        :on-refresh="handleRefresh"
+                    >
                         <ResourceCollection
                             :resources="filteredResources"
                             :loading="showSkeleton"
@@ -92,7 +95,7 @@
                                 {{ loadingMore ? 'Loading…' : 'Load more' }}
                             </button>
                         </div>
-                    </div>
+                    </PullToRefresh>
                 </div>
             </div>
         </div>
@@ -100,6 +103,8 @@
 </template>
 
 <script setup>
+defineOptions({ name: 'LibraryPage' });
+
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AppShell from '@/layouts/AppShell.vue';
@@ -113,6 +118,7 @@ import PressableButton from '@/components/ui/PressableButton.vue';
 import IconCloudOffline from '@/components/icons/IconCloudOffline.vue';
 import IconSearch from '@/components/icons/IconSearch.vue';
 import LoadErrorBanner from '@/components/ui/LoadErrorBanner.vue';
+import PullToRefresh from '@/components/ui/PullToRefresh.vue';
 import { useDelayedLoading } from '@/composables/useDelayedLoading';
 import { useLibrary } from '@/composables/useLibrary';
 import { getAllOfflineResources } from '@/composables/useOfflineStore';
@@ -120,7 +126,7 @@ import { useResourcesList } from '@/composables/useResourcesList';
 
 const router = useRouter();
 const library = useLibrary();
-const { resources, loading, loadingMore, error, hasMore, total, load, loadMore, setFilters, retry } = useResourcesList();
+const { resources, loading, loadingMore, error, hasMore, total, load, loadMore, setFilters, refresh, retry, loaded } = useResourcesList();
 const { showSkeleton } = useDelayedLoading(loading);
 const activeFilter = ref('All');
 const sortBy = ref('recent');
@@ -260,7 +266,7 @@ const filteredResources = computed(() => {
 });
 
 watch(() => library.state.activeSection, () => {
-    document.querySelector('.library-scroll-region')?.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('.library-scroll-region .pull-to-refresh__scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
 watch(activeFilter, (filter) => {
@@ -274,13 +280,32 @@ watch(activeFilter, (filter) => {
 watch(usesServerFilters, (enabled) => {
     if (enabled) {
         setFilters(filterApiParams[activeFilter.value] ?? {});
-    } else {
-        load({ force: true, params: {} });
     }
 });
 
 async function refreshOfflineResources() {
-    offlineResources.value = await getAllOfflineResources();
+    const offline = await getAllOfflineResources();
+    const bySlug = new Map(resources.value.map((item) => [item.slug, item]));
+
+    offlineResources.value = offline.map((item) => {
+        const cached = bySlug.get(item.slug);
+
+        if (! item.cover_image && cached?.cover_image) {
+            return { ...item, cover_image: cached.cover_image };
+        }
+
+        return item;
+    });
+}
+
+async function handleRefresh() {
+    await Promise.all([
+        usesServerFilters.value
+            ? setFilters(filterApiParams[activeFilter.value] ?? {}, { force: true })
+            : refresh(),
+        refreshOfflineResources(),
+        library.syncDownloads(),
+    ]);
 }
 
 watch(() => library.state.downloadedSlugs.size, () => {
@@ -288,11 +313,14 @@ watch(() => library.state.downloadedSlugs.size, () => {
 }, { immediate: true });
 
 onMounted(async () => {
-    await Promise.all([
-        usesServerFilters.value
-            ? setFilters(filterApiParams[activeFilter.value] ?? {})
-            : load(),
-        refreshOfflineResources(),
-    ]);
+    if (! loaded.value) {
+        if (usesServerFilters.value) {
+            await setFilters(filterApiParams[activeFilter.value] ?? {});
+        } else {
+            await load();
+        }
+    }
+
+    await refreshOfflineResources();
 });
 </script>

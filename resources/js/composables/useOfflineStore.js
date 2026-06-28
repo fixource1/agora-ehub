@@ -1,4 +1,5 @@
 import { idbDeleteByPrefix, idbGet, idbPut } from '@/lib/idb';
+import { resolvePublicAssetUrl } from '@/config/api';
 
 const META_STORAGE_KEY = 'agora-offline-meta';
 const LEGACY_DOWNLOADS_KEY = 'agora-downloaded-slugs';
@@ -96,8 +97,6 @@ function enrichResource(resource, coverBlob, fileBlob) {
 
     if (coverBlob) {
         enriched.cover_image = rememberObjectUrl(coverKey(resource.slug), coverBlob);
-    } else {
-        delete enriched.cover_image;
     }
 
     if (fileBlob) {
@@ -198,13 +197,7 @@ export async function mergeResourcesWithOffline(resources) {
 
     for (const offlineResource of offlineResources) {
         const existing = bySlug.get(offlineResource.slug) ?? {};
-        const merged = { ...existing, ...offlineResource };
-
-        if (! offlineResource.cover_image) {
-            delete merged.cover_image;
-        }
-
-        bySlug.set(offlineResource.slug, merged);
+        bySlug.set(offlineResource.slug, { ...existing, ...offlineResource });
     }
 
     return [...bySlug.values()];
@@ -289,11 +282,23 @@ export async function fetchCoverBlob(coverUrl, options = {}) {
     }
 
     try {
-        const absoluteUrl = coverUrl.startsWith('http')
-            ? coverUrl
-            : `${window.location.origin}${coverUrl.startsWith('/') ? coverUrl : `/${coverUrl}`}`;
+        const resolved = resolvePublicAssetUrl(coverUrl);
 
-        const response = await fetch(absoluteUrl, { signal: options.signal });
+        if (! resolved) {
+            return null;
+        }
+
+        const baseUrl = (window.axios.defaults.baseURL || window.location.origin || '').replace(/\/$/, '');
+        const requestUrl = resolved.startsWith('http')
+            ? resolved
+            : `${baseUrl}${resolved.startsWith('/') ? resolved : `/${resolved}`}`;
+
+        const response = await fetch(requestUrl, {
+            signal: options.signal,
+            headers: {
+                Accept: 'image/svg+xml,image/*,*/*',
+            },
+        });
 
         if (! response.ok) {
             return null;

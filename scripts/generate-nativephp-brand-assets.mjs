@@ -7,11 +7,11 @@ const brandDir = join(root, 'public', 'brand');
 const generatedDir = join(brandDir, 'generated');
 const androidResDir = join(root, 'nativephp', 'android', 'app', 'src', 'main', 'res');
 
-const iconBackground = '#ffffff';
+const launcherLegacyBackground = '#000000';
+const launcherAdaptiveBackground = '#000000';
 const splashLightBackground = '#ffffff';
 const splashDarkBackground = '#000000';
-const splashContentScale = 0.82;
-const iconSvg = join(brandDir, 'agora-icon.svg');
+const splashContentScale = 0.27; // Keep in sync with --splash-art-scale in resources/views/app.blade.php
 const splashLightSrc = join(brandDir, 'agora_splash_light.png');
 const splashDarkSrc = join(brandDir, 'agora_splash_dark.png');
 
@@ -59,19 +59,24 @@ try {
 }
 
 const iconSize = 1024;
+const iconSvg = join(brandDir, 'agora-icon.svg');
 
 await mkdir(generatedDir, { recursive: true });
 
 const iconBuffer = await sharp(iconSvg, { density: 360 })
     .resize(iconSize, iconSize, {
         fit: 'contain',
-        background: iconBackground,
+        background: launcherLegacyBackground,
     })
-    .flatten({ background: iconBackground })
+    .flatten({ background: launcherLegacyBackground })
     .png()
     .toBuffer();
 
-await writeFile(archiveIconOut, iconBuffer);
+try {
+    await writeFile(archiveIconOut, iconBuffer);
+} catch (error) {
+    console.warn(`Could not write archive icon (${archiveIconOut}): ${error.message}`);
+}
 
 async function ensureDir(path) {
     await mkdir(path, { recursive: true });
@@ -128,27 +133,40 @@ async function removeLegacySplashAssets() {
 }
 
 async function writeResizedPng(source, destination, width, height, options = {}) {
-    const { foreground = false } = options;
+    const { foreground = false, background = launcherLegacyBackground } = options;
     const inset = foreground ? 0.69 : 1;
     const target = Math.round(Math.min(width, height) * inset);
-    const background = foreground ? { r: 0, g: 0, b: 0, alpha: 0 } : iconBackground;
+    const fill = foreground ? { r: 0, g: 0, b: 0, alpha: 0 } : background;
 
     const buffer = await sharp(source)
         .resize(target, target, {
             fit: 'contain',
-            background,
+            background: fill,
         })
         .extend({
             top: Math.floor((height - target) / 2),
             bottom: Math.ceil((height - target) / 2),
             left: Math.floor((width - target) / 2),
             right: Math.ceil((width - target) / 2),
-            background,
+            background: fill,
         })
         .png()
         .toBuffer();
 
     await writeFile(destination, buffer);
+}
+
+async function writeSolidSquare(destination, size, color) {
+    await sharp({
+        create: {
+            width: size,
+            height: size,
+            channels: 4,
+            background: color,
+        },
+    })
+        .png()
+        .toFile(destination);
 }
 
 async function writeSplashVariant(source, destination, width, height, background) {
@@ -193,6 +211,62 @@ function hexToRgb(hex) {
     };
 }
 
+async function writeAndroidThemeResources() {
+    const drawableDir = join(androidResDir, 'drawable');
+    const drawableNightDir = join(androidResDir, 'drawable-night');
+    const valuesV31Dir = join(androidResDir, 'values-v31');
+    const valuesNightV31Dir = join(androidResDir, 'values-night-v31');
+    const mipmapAnyDpiDir = join(androidResDir, 'mipmap-anydpi-v26');
+
+    await ensureDir(drawableDir);
+    await ensureDir(drawableNightDir);
+    await ensureDir(valuesV31Dir);
+    await ensureDir(valuesNightV31Dir);
+    await ensureDir(mipmapAnyDpiDir);
+
+    const launcherBackgroundXml = `<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+       android:shape="rectangle">
+    <solid android:color="${launcherAdaptiveBackground}"/>
+</shape>
+`;
+
+    await writeFile(join(drawableDir, 'ic_launcher_background.xml'), launcherBackgroundXml);
+    await writeFile(join(drawableNightDir, 'ic_launcher_background.xml'), launcherBackgroundXml);
+
+    const adaptiveIconXml = `<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+`;
+
+    await writeFile(join(mipmapAnyDpiDir, 'ic_launcher.xml'), adaptiveIconXml);
+    await writeFile(join(mipmapAnyDpiDir, 'ic_launcher_round.xml'), adaptiveIconXml);
+
+    const splashThemeItems = `        <item name="android:windowSplashScreenBackground">@android:color/black</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/transparent</item>
+`;
+
+    const lightSplashTheme = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.AndroidPHP" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+${splashThemeItems}    </style>
+</resources>
+`;
+
+    const darkSplashTheme = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.AndroidPHP" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+${splashThemeItems}    </style>
+</resources>
+`;
+
+    await writeFile(join(valuesV31Dir, 'themes.xml'), lightSplashTheme);
+    await writeFile(join(valuesNightV31Dir, 'themes.xml'), darkSplashTheme);
+}
+
 for (const [folder, size] of Object.entries(launcherSizes)) {
     const targetDir = join(androidResDir, folder);
     await ensureDir(targetDir);
@@ -209,6 +283,12 @@ for (const [folder, size] of Object.entries(launcherSizes)) {
         foregroundSize,
         { foreground: true },
     );
+
+    await writeSolidSquare(
+        join(targetDir, 'ic_launcher_background.png'),
+        foregroundSize,
+        launcherAdaptiveBackground,
+    );
 }
 
 await removeLegacySplashAssets();
@@ -220,47 +300,71 @@ for (const [density, [portraitWidth, portraitHeight]] of Object.entries(portrait
     const lightLandscapeDir = join(androidResDir, `drawable-land-${density}`);
     const darkPortraitDir = join(androidResDir, `drawable-port-night-${density}`);
     const darkLandscapeDir = join(androidResDir, `drawable-land-night-${density}`);
+    const lightFallbackDir = join(androidResDir, `drawable-${density}`);
+    const darkFallbackDir = join(androidResDir, `drawable-night-${density}`);
 
     await ensureDir(lightPortraitDir);
     await ensureDir(lightLandscapeDir);
     await ensureDir(darkPortraitDir);
     await ensureDir(darkLandscapeDir);
+    await ensureDir(lightFallbackDir);
+    await ensureDir(darkFallbackDir);
+
+    const lightPortraitPath = join(lightPortraitDir, 'splash.png');
+    const lightLandscapePath = join(lightLandscapeDir, 'splash.png');
+    const darkPortraitPath = join(darkPortraitDir, 'splash.png');
+    const darkLandscapePath = join(darkLandscapeDir, 'splash.png');
 
     await writeSplashVariant(
         splashLightSrc,
-        join(lightPortraitDir, 'splash.png'),
+        lightPortraitPath,
         portraitWidth,
         portraitHeight,
         splashLightBackground,
     );
     await writeSplashVariant(
         splashLightSrc,
-        join(lightLandscapeDir, 'splash.png'),
+        join(lightFallbackDir, 'splash.png'),
+        portraitWidth,
+        portraitHeight,
+        splashLightBackground,
+    );
+    await writeSplashVariant(
+        splashLightSrc,
+        lightLandscapePath,
         landscapeWidth,
         landscapeHeight,
         splashLightBackground,
     );
     await writeSplashVariant(
         splashDarkSrc,
-        join(darkPortraitDir, 'splash.png'),
+        darkPortraitPath,
         portraitWidth,
         portraitHeight,
         splashDarkBackground,
     );
     await writeSplashVariant(
         splashDarkSrc,
-        join(darkLandscapeDir, 'splash.png'),
+        join(darkFallbackDir, 'splash.png'),
+        portraitWidth,
+        portraitHeight,
+        splashDarkBackground,
+    );
+    await writeSplashVariant(
+        splashDarkSrc,
+        darkLandscapePath,
         landscapeWidth,
         landscapeHeight,
         splashDarkBackground,
     );
 }
 
+await writeAndroidThemeResources();
+
 console.log('Generated NativePHP Android brand assets:');
-console.log(`  Launcher icon background: ${iconBackground}`);
-console.log(`  Light splash background: ${splashLightBackground}`);
-console.log(`  Dark splash background: ${splashDarkBackground}`);
-console.log(`  Splash logo scale: ${Math.round(splashContentScale * 100)}%`);
+console.log(`  Launcher legacy background: ${launcherLegacyBackground}`);
+console.log(`  Launcher adaptive background: ${launcherAdaptiveBackground}`);
+console.log(`  Splash mode: centered logo at ${Math.round(splashContentScale * 100)}% scale`);
 console.log(`  Splash light source: ${splashLightSrc}`);
 console.log(`  Splash dark source: ${splashDarkSrc}`);
 console.log(`  ${androidResDir}`);

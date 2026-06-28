@@ -39,3 +39,26 @@ export function resolveApiBaseUrl() {
 
     return '/api/v1';
 }
+
+/**
+ * Resolve /storage/... paths for img[src] (API base URL on remote NativePHP).
+ */
+export function resolvePublicAssetUrl(path) {
+    if (! path || typeof path !== 'string') {
+        return null;
+    }
+
+    if (path.startsWith('blob:') || path.startsWith('http://') || path.startsWith('https://')) {
+        return path;
+    }
+
+    const normalized = path.startsWith('/') ? path : `/${path}`;
+
+    if (isRemoteMobileApi()) {
+        const base = String(getAgoraConfig().mobileApiBaseUrl ?? '').replace(/\/$/, '');
+
+        return base ? `${base}${normalized}` : normalized;
+    }
+
+    return normalized;
+}

@@ -12,9 +12,9 @@
         >
             <img
                 v-if="showCoverImage"
-                :src="resource.cover_image"
+                :src="coverImageUrl"
                 :alt="resource.title"
-                class="absolute inset-0 h-full w-full object-cover object-top"
+                class="absolute inset-0 h-full w-full object-cover object-center"
                 @error="coverImageFailed = true"
             >
             <ResourceGeneratedCover
@@ -53,10 +53,11 @@
 </template>
 
 <script setup>
-import { computed, ref, toRef, watch } from 'vue';
+import { toRef } from 'vue';
 import IconCheck from '@/components/icons/IconCheck.vue';
 import ResourceGeneratedCover from '@/components/resources/ResourceGeneratedCover.vue';
 import { useResourceMeta } from '@/composables/useResourceMeta';
+import { useResourceCover } from '@/composables/useResourceCover';
 import { useResourceCache } from '@/composables/useResourceCache';
 import { useLongPress } from '@/composables/useLongPress';
 import { useResourceQuickActions } from '@/composables/useResourceQuickActions';
@@ -72,23 +73,5 @@ const longPress = useLongPress(() => openQuickActions(props.resource));
 
 const resourceRef = toRef(props, 'resource');
 const { typeIcon, fileTypeLabel, metaLabel } = useResourceMeta(resourceRef);
-const coverImageFailed = ref(false);
-
-watch(() => props.resource.cover_image, () => {
-    coverImageFailed.value = false;
-});
-
-const showCoverImage = computed(() => {
-    if (coverImageFailed.value) {
-        return false;
-    }
-
-    const cover = props.resource.cover_image;
-
-    if (props.resource.offline_available) {
-        return typeof cover === 'string' && cover.startsWith('blob:');
-    }
-
-    return Boolean(cover);
-});
+const { coverImageUrl, showCoverImage, coverImageFailed } = useResourceCover(resourceRef);
 </script>

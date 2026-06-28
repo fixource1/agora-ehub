@@ -42,6 +42,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { isNativePlatform } from '@/config/api';
 
 const props = defineProps({
     ariaLabel: { type: String, default: 'Open menu' },
@@ -58,15 +59,19 @@ let ignoreOutsideClick = false;
 
 const panelClasses = computed(() => [
     props.align === 'right' ? 'action-menu__panel--right' : 'action-menu__panel--left',
-    isMobileViewport() ? 'action-menu__panel--sheet' : 'action-menu__panel--anchored',
+    useSheetPanel() ? 'action-menu__panel--sheet' : 'action-menu__panel--anchored',
 ]);
+
+function useSheetPanel() {
+    return isMobileViewport() || isNativePlatform();
+}
 
 function isMobileViewport() {
     return window.matchMedia('(max-width: 639px)').matches;
 }
 
 function updatePanelPosition() {
-    if (! open.value || ! root.value || isMobileViewport()) {
+    if (! open.value || ! root.value || useSheetPanel()) {
         return;
     }
 
@@ -134,6 +139,7 @@ onMounted(() => {
     document.addEventListener('keydown', onEscape);
     window.addEventListener('resize', onViewportChange);
     window.addEventListener('scroll', onViewportChange, true);
+    window.addEventListener('orientationchange', close);
 });
 
 onBeforeUnmount(() => {
@@ -141,6 +147,7 @@ onBeforeUnmount(() => {
     document.removeEventListener('keydown', onEscape);
     window.removeEventListener('resize', onViewportChange);
     window.removeEventListener('scroll', onViewportChange, true);
+    window.removeEventListener('orientationchange', close);
     document.body.classList.remove('action-menu-open');
 });
 

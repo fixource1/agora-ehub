@@ -29,8 +29,11 @@
             </header>
 
             <div class="flex min-h-0 flex-1 flex-col tablet-sidebar:overflow-hidden">
-                <div class="page-content px-4 pt-5 tablet-sidebar:flex tablet-sidebar:min-h-0 tablet-sidebar:flex-1 tablet-sidebar:flex-col tablet-sidebar:overflow-hidden tablet-sidebar:px-4 tablet-sidebar:pt-4 tablet-sidebar:pb-0 lg:px-6 lg:pt-6 xl:px-8">
-                    <div class="discover-scroll flex min-w-0 flex-col gap-6 tablet-sidebar:min-h-0 tablet-sidebar:flex-1 tablet-sidebar:overflow-y-auto">
+                <PullToRefresh
+                    class="page-content flex min-h-0 flex-1 flex-col tablet-sidebar:min-h-0 tablet-sidebar:overflow-hidden tablet-sidebar:px-4 tablet-sidebar:pt-4 tablet-sidebar:pb-0 lg:px-6 lg:pt-6 xl:px-8"
+                    scroll-class="discover-scroll flex min-w-0 flex-col gap-6 px-4 pt-5 tablet-sidebar:min-h-0 tablet-sidebar:flex-1 tablet-sidebar:px-0 tablet-sidebar:pt-0"
+                    :on-refresh="handleRefresh"
+                >
                         <div class="bg-surface ring-app rounded-2xl p-3 ring-1 tablet-sidebar:hidden">
                             <div class="bg-surface-muted flex items-center gap-3 rounded-xl px-4 py-2.5">
                                 <IconSearch class="text-muted h-5 w-5 shrink-0" />
@@ -104,14 +107,15 @@
                                 </button>
                             </div>
                         </section>
-                    </div>
-                </div>
+                </PullToRefresh>
             </div>
         </div>
     </AppShell>
 </template>
 
 <script setup>
+defineOptions({ name: 'DiscoverPage' });
+
 import { onMounted, ref, watch } from 'vue';
 import AppShell from '@/layouts/AppShell.vue';
 import MobileTopBar from '@/components/layout/MobileTopBar.vue';
@@ -120,11 +124,12 @@ import ResourceCollection from '@/components/resources/ResourceCollection.vue';
 import ResourceViewToggle from '@/components/resources/ResourceViewToggle.vue';
 import SkeletonBlock from '@/components/skeleton/SkeletonBlock.vue';
 import LoadErrorBanner from '@/components/ui/LoadErrorBanner.vue';
+import PullToRefresh from '@/components/ui/PullToRefresh.vue';
 import { useDelayedLoading } from '@/composables/useDelayedLoading';
 import { useResourcesList } from '@/composables/useResourcesList';
 
 const query = ref('');
-const { resources, loading, loadingMore, error, hasMore, load, loadMore, setFilters, retry } = useResourcesList();
+const { resources, loading, loadingMore, error, hasMore, load, loadMore, setFilters, refresh, retry, loaded } = useResourcesList();
 const { showSkeleton } = useDelayedLoading(loading);
 const activeCategory = ref(null);
 const searchInput = ref(null);
@@ -158,6 +163,20 @@ function applyFilters() {
     setFilters(params);
 }
 
+async function handleRefresh() {
+    const params = {};
+
+    if (query.value.trim()) {
+        params.q = query.value.trim();
+    }
+
+    if (activeCategory.value) {
+        params.category = activeCategory.value;
+    }
+
+    await setFilters(params, { force: true });
+}
+
 function focusSearch() {
     mobileSearchInput.value?.focus();
 }
@@ -167,5 +186,9 @@ watch([query, activeCategory], () => {
     searchTimer = setTimeout(applyFilters, 300);
 });
 
-onMounted(() => load());
+onMounted(() => {
+    if (! loaded.value) {
+        applyFilters();
+    }
+});
 </script>

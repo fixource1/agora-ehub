@@ -79,6 +79,8 @@
 </template>
 
 <script setup>
+defineOptions({ name: 'ProfilePage' });
+
 import { computed, ref } from 'vue';
 import AppShell from '@/layouts/AppShell.vue';
 import MobileTopBar from '@/components/layout/MobileTopBar.vue';

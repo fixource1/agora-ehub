@@ -20,10 +20,19 @@
 </template>
 
 <script setup>
+import { onBeforeUnmount, onMounted } from 'vue';
 import { useLibrary } from '@/composables/useLibrary';
 import LibrarySidebar from '@/components/library/LibrarySidebar.vue';
 
 const library = useLibrary();
+
+onMounted(() => {
+    window.addEventListener('orientationchange', library.closeDrawer);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('orientationchange', library.closeDrawer);
+});
 </script>
 
 <style scoped>

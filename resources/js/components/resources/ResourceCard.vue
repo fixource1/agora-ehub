@@ -10,9 +10,9 @@
         <div class="resource-card-cover relative aspect-[3/4] shrink-0 overflow-hidden">
             <img
                 v-if="showCoverImage"
-                :src="resource.cover_image"
+                :src="coverImageUrl"
                 :alt="resource.title"
-                class="absolute inset-0 h-full w-full object-cover object-top transition duration-300 group-hover:scale-[1.02]"
+                class="absolute inset-0 h-full w-full object-cover object-center transition duration-300 group-hover:scale-[1.02]"
                 @error="coverImageFailed = true"
             >
             <ResourceGeneratedCover
@@ -24,16 +24,8 @@
                 :type-slug="resource.resource_type?.slug"
                 :file-type="resource.primary_file?.file_type"
                 compact
+                show-title
             />
-
-            <div
-                v-if="isVideo && showCoverImage"
-                class="absolute inset-0 z-10 flex items-center justify-center bg-black/15"
-            >
-                <div class="bg-surface/95 text-brand flex h-9 w-9 items-center justify-center rounded-full shadow-sm">
-                    <IconPlay class="h-4 w-4" />
-                </div>
-            </div>
 
             <span
                 v-if="fileTypeLabel"
@@ -58,7 +50,7 @@
             </span>
         </div>
 
-        <div class="resource-card-body flex min-h-0 flex-1 flex-col px-2.5 py-2.5">
+        <div class="resource-card-body shrink-0 px-2.5 py-2.5">
             <h3 class="text-app line-clamp-2 text-xs font-semibold leading-snug sm:text-sm">{{ resource.title }}</h3>
             <p class="text-muted mt-1 truncate text-[10px] sm:text-[11px]">
                 {{ metaLabel }}
@@ -68,11 +60,11 @@
 </template>
 
 <script setup>
-import { computed, ref, toRef, watch } from 'vue';
+import { toRef } from 'vue';
 import IconCheck from '@/components/icons/IconCheck.vue';
-import IconPlay from '@/components/icons/IconPlay.vue';
 import ResourceGeneratedCover from '@/components/resources/ResourceGeneratedCover.vue';
 import { useResourceMeta } from '@/composables/useResourceMeta';
+import { useResourceCover } from '@/composables/useResourceCover';
 import { useResourceCache } from '@/composables/useResourceCache';
 import { useLongPress } from '@/composables/useLongPress';
 import { useResourceQuickActions } from '@/composables/useResourceQuickActions';
@@ -87,24 +79,6 @@ const { openQuickActions } = useResourceQuickActions();
 const longPress = useLongPress(() => openQuickActions(props.resource));
 
 const resourceRef = toRef(props, 'resource');
-const { isVideo, typeIcon, fileTypeLabel, metaLabel, duration } = useResourceMeta(resourceRef);
-const coverImageFailed = ref(false);
-
-watch(() => props.resource.cover_image, () => {
-    coverImageFailed.value = false;
-});
-
-const showCoverImage = computed(() => {
-    if (coverImageFailed.value) {
-        return false;
-    }
-
-    const cover = props.resource.cover_image;
-
-    if (props.resource.offline_available) {
-        return typeof cover === 'string' && cover.startsWith('blob:');
-    }
-
-    return Boolean(cover);
-});
+const { typeIcon, fileTypeLabel, metaLabel, duration } = useResourceMeta(resourceRef);
+const { coverImageUrl, showCoverImage, coverImageFailed } = useResourceCover(resourceRef);
 </script>

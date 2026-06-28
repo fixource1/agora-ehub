@@ -425,7 +425,7 @@ return [
             'landscape_right' => false,
         ],
         'android' => [
-            'portrait' => false,
+            'portrait' => true,
             'upside_down' => false,
             'landscape_left' => true,
             'landscape_right' => true,
