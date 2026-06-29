@@ -4,13 +4,23 @@
     "name": "AGORA_e-HUB",
     "type": "module",
     "scripts": {
-        "build": "vite build",
+        "build": "node scripts/ensure-frontend-deps.mjs && vite build && node scripts/copy-pdfium-wasm.mjs && node scripts/copy-pdfjs-worker.mjs",
         "build:native-brand": "node scripts/generate-nativephp-brand-assets.mjs",
         "dev": "vite"
     },
     "dependencies": {
+        "@embedpdf/core": "^2.14.4",
+        "@embedpdf/engines": "^2.14.4",
+        "@embedpdf/models": "^2.14.4",
+        "@embedpdf/pdfium": "^2.14.4",
+        "@embedpdf/plugin-document-manager": "^2.14.4",
+        "@embedpdf/plugin-render": "^2.14.4",
+        "@embedpdf/plugin-scroll": "^2.14.4",
+        "@embedpdf/plugin-viewport": "^2.14.4",
+        "@embedpdf/plugin-zoom": "^2.14.4",
         "@vueuse/core": "^13.0.0",
         "axios": "^1.8.0",
+        "pdfjs-dist": "^4.10.38",
         "pinia": "^3.0.0",
         "vue": "^3.5.0",
         "vue-router": "^4.5.0"

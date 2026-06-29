@@ -2,8 +2,8 @@
     <div class="px-8 py-8">
         <div class="flex flex-wrap items-end justify-between gap-4">
             <div>
-                <h1 class="text-app text-3xl font-bold">My Resources</h1>
-                <p class="text-muted mt-1">Manage your uploaded materials</p>
+                <h1 class="text-app text-3xl font-bold">{{ pageTitle }}</h1>
+                <p class="text-muted mt-1">{{ pageSubtitle }}</p>
             </div>
             <RouterLink to="/author/resources/new" class="bg-brand rounded-xl px-5 py-2.5 text-sm font-semibold text-white">
                 + Add New Resource
@@ -34,6 +34,7 @@
                 <thead class="web-table-head">
                     <tr>
                         <th class="px-5 py-3 font-medium">Title</th>
+                        <th v-if="canManageResources" class="px-5 py-3 font-medium">Uploader</th>
                         <th class="px-5 py-3 font-medium">Category</th>
                         <th class="px-5 py-3 font-medium">Type</th>
                         <th class="px-5 py-3 font-medium">Status</th>
@@ -46,6 +47,9 @@
                         <td class="px-5 py-4">
                             <p class="text-app font-medium">{{ resource.title }}</p>
                             <p v-if="resource.subtitle" class="text-muted text-xs">{{ resource.subtitle }}</p>
+                        </td>
+                        <td v-if="canManageResources" class="text-muted px-5 py-4">
+                            {{ resource.uploader?.name ?? '—' }}
                         </td>
                         <td class="text-muted px-5 py-4">{{ resource.category?.name ?? '—' }}</td>
                         <td class="text-muted px-5 py-4">{{ resource.resource_type?.name }}</td>
@@ -83,11 +87,20 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { client } from '../api/client';
+import { useAdminAccess } from '../composables/useAdminAccess';
 
 const route = useRoute();
+const { canManageResources } = useAdminAccess();
+
+const pageTitle = computed(() => (canManageResources.value ? 'All Resources' : 'My Resources'));
+const pageSubtitle = computed(() => (
+    canManageResources.value
+        ? 'Manage all uploaded materials across authors'
+        : 'Manage your uploaded materials'
+));
 const resources = ref([]);
 const loading = ref(true);
 const query = ref('');

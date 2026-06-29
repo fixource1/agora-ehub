@@ -44,4 +44,11 @@ jobs:
         run: php artisan key:generate
 
       - name: Execute tests
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          DB_HOST: ''
+          DB_PORT: ''
+          DB_USERNAME: ''
+          DB_PASSWORD: ''
         run: php artisan test

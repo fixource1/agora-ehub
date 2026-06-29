@@ -12,6 +12,7 @@ const routes = [
     { path: '/discover', name: 'discover', component: () => import('@/pages/DiscoverPage.vue'), meta: { keepAlive: true } },
     { path: '/profile', name: 'profile', component: () => import('@/pages/ProfilePage.vue'), meta: { keepAlive: true } },
     { path: '/resources/:slug', name: 'resource.show', component: () => import('@/pages/ResourceDetailPage.vue') },
+    { path: '/resources/:slug/read', name: 'resource.read', component: () => import('@/pages/ReaderPage.vue') },
 ];
 
 export default createRouter({

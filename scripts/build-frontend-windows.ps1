@@ -27,22 +27,32 @@ Write-CliTitle 'Frontend build'
 Write-CliNote "Node $(& $node.Source -v) | npm $(& $npmCmd -v)"
 Write-Host ''
 
-if (-not (Test-Path 'node_modules')) {
-    Write-CliTitle 'Installing npm packages'
-    Write-CliNote 'This may take a few minutes on first run...'
-    Write-Host ''
-    & $npmCmd install
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    Write-Host ''
-    Write-CliDone 'npm install complete'
-    Write-Host ''
-}
+Write-CliTitle 'Installing npm packages'
+Write-CliNote 'Syncing dependencies from package-lock.json...'
+Write-Host ''
+& $npmCmd install
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Write-Host ''
+Write-CliDone 'npm install complete'
+Write-Host ''
 
 Write-CliTitle 'Building assets (Vite)'
 Write-CliNote 'Compiling Vue, Tailwind, and bundled images...'
 Write-Host ''
 & $npmCmd run build
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+if (-not (Test-Path 'public\pdf\pdfium.wasm')) {
+    Write-CliFail 'public\pdf\pdfium.wasm was not created by the frontend build.'
+    Write-CliNote 'Re-run: npm run build'
+    exit 1
+}
+
+if (-not (Test-Path 'public\pdf\pdf.worker.min.mjs')) {
+    Write-CliFail 'public\pdf\pdf.worker.min.mjs was not created by the frontend build.'
+    Write-CliNote 'Re-run: npm run build'
+    exit 1
+}
 
 Write-Host ''
 Write-CliTitle 'Generating NativePHP icon and splash PNGs'

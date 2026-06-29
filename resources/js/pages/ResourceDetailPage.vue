@@ -103,12 +103,13 @@
                             </p>
 
                             <button
+                                v-if="isPdf"
                                 class="bg-surface ring-app text-app mt-3 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 font-medium ring-1 disabled:cursor-not-allowed disabled:opacity-60"
                                 type="button"
-                                :disabled="! isOffline"
-                                @click="openOfflineFile"
+                                :disabled="! canReadPdf"
+                                @click="openReader"
                             >
-                                Open <span class="text-muted">▾</span>
+                                Read
                             </button>
 
                             <div v-if="progress" class="bg-surface ring-app mt-4 rounded-2xl p-4 ring-1">
@@ -241,6 +242,7 @@ import IconCheck from '@/components/icons/IconCheck.vue';
 import IconDownload from '@/components/icons/IconDownload.vue';
 import { useLibrary } from '@/composables/useLibrary';
 import { useOfflineDownload } from '@/composables/useOfflineDownload';
+import { canReadPdfResource, isPdfResource } from '@/composables/usePdfDocumentSource';
 import { getOfflineResource } from '@/composables/useOfflineStore';
 import { useResourceCache } from '@/composables/useResourceCache';
 import { useDelayedLoading } from '@/composables/useDelayedLoading';
@@ -280,6 +282,9 @@ const downloadError = ref('');
 let progressInterval = null;
 let downloadAbortController = null;
 const { typeIcon } = useResourceMeta(resource);
+
+const isPdf = computed(() => isPdfResource(resource.value));
+const canReadPdf = computed(() => canReadPdfResource(resource.value, { offline: isOffline.value }));
 
 const needsSkeleton = computed(() => loading.value && ! resource.value);
 const { showSkeleton } = useDelayedLoading(needsSkeleton);
@@ -507,12 +512,12 @@ async function startDownload() {
     }
 }
 
-function openOfflineFile() {
-    if (! resource.value?.offline_file_url) {
+function openReader() {
+    if (! canReadPdf.value || ! resource.value?.slug) {
         return;
     }
 
-    window.open(resource.value.offline_file_url, '_blank', 'noopener,noreferrer');
+    router.push({ name: 'resource.read', params: { slug: resource.value.slug } });
 }
 
 function handleDownloadButtonClick() {

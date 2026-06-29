@@ -23,6 +23,7 @@ class ContributorResourceController extends Controller
 
         $query = Resource::query()
             ->with(['resourceType', 'category', 'tags', 'files'])
+            ->when($request->user()->can('manage resources'), fn ($builder) => $builder->with('uploader:id,name,email'))
             ->latest('updated_at');
 
         if (! $request->user()->can('manage resources')) {

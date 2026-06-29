@@ -215,6 +215,27 @@ if ($LASTEXITCODE -ne 0) {
 Pop-Location
 Write-Host 'NativePHP icon and splash PNGs ready.' -ForegroundColor Green
 
+$pdfiumWasm = Join-Path $projectRoot 'public\pdf\pdfium.wasm'
+if (-not (Test-Path -LiteralPath $pdfiumWasm)) {
+    Write-Host 'public\pdf\pdfium.wasm missing — copying from node_modules...' -ForegroundColor Yellow
+    Push-Location $projectRoot
+    & $npmCmd run build
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        Write-Host '[FAIL] Frontend build failed while creating pdfium.wasm.' -ForegroundColor Red
+        exit 1
+    }
+    Pop-Location
+}
+
+if (-not (Test-Path -LiteralPath $pdfiumWasm)) {
+    Write-Host '[FAIL] Missing public\pdf\pdfium.wasm. Run .\scripts\build-frontend-windows.cmd first.' -ForegroundColor Red
+    exit 1
+}
+
+$wasmSizeMb = [math]::Round((Get-Item -LiteralPath $pdfiumWasm).Length / 1MB, 1)
+Write-Host "PDF engine asset ready ($wasmSizeMb MB)." -ForegroundColor Green
+
 # NativePHP re-processes public/icon.png with PHP GD. Our Node build already wrote android res.
 foreach ($legacyBrandFile in @('public\icon.png', 'public\splash.png', 'public\splash-dark.png')) {
     $legacyPath = Join-Path $projectRoot $legacyBrandFile

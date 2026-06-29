@@ -59,6 +59,11 @@ class ResourceResource extends JsonResource
                 'file_size' => $primaryFile->file_size,
                 'download_url' => "/api/v1/resources/{$this->slug}/files/{$primaryFile->id}/download",
             ] : null,
+            'uploader' => $this->whenLoaded('uploader', fn () => [
+                'id' => $this->uploader->id,
+                'name' => $this->uploader->name,
+                'email' => $this->uploader->email,
+            ]),
         ];
     }
 }

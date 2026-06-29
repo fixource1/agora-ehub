@@ -12,15 +12,33 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { onBeforeUnmount, onMounted } from 'vue';
 import AppToast from '@/components/ui/AppToast.vue';
 import ResourceQuickActionsMenu from '@/components/resources/ResourceQuickActionsMenu.vue';
+import { hydrateAppStorage, reloadAppStorage } from '@/lib/appStorage';
 import { useLibrary } from '@/composables/useLibrary';
 
 const library = useLibrary();
 
+async function refreshLibraryStorage() {
+    await reloadAppStorage().catch(() => {});
+    library.reloadFromStorage();
+}
+
+function onVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+        refreshLibraryStorage().catch(() => {});
+    }
+}
+
 onMounted(() => {
     library.hydrateDownloads().catch(() => {});
     library.syncDownloads();
+    library.refreshReaderCounts();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('visibilitychange', onVisibilityChange);
 });
 </script>

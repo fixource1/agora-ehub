@@ -1,157 +1,606 @@
 <template>
-    <div class="reader-shell fixed inset-0 z-50 flex flex-col lg:grid lg:grid-cols-[280px_minmax(0,1fr)_300px]" :class="themeClass">
-        <!-- TOC: tablet persistent / mobile overlay -->
+    <div
+        class="reader-shell bg-app text-app fixed inset-0 z-50 flex h-dvh max-h-dvh w-full flex-col overflow-hidden lg:grid lg:grid-cols-[280px_minmax(0,1fr)_300px]"
+    >
         <ReaderTocPanel
-            class="hidden lg:flex"
-            :items="tocItems"
-            :total-pages="totalPages"
+            v-show="! isFullscreen"
+            class="reader-shell__sidebar-left hidden lg:flex"
+            :outline-items="outlineItems"
+            :bookmark-items="readerBookmarks"
+            :user-notes="readerNotes"
+            :annotation-items="annotationItems"
+            :annotations-loading="annotationsLoading"
+            :current-page="livePageState.currentPage"
+            :total-pages="displayTotalPages"
+            :fetch-thumbnail="fetchPageThumbnail"
+            :thumbnails-ready="thumbnailsReady"
+            @select="onTocSelect"
+            @remove-bookmark="removeReaderBookmark"
+            @remove-note="removeReaderNote"
+            @add-note="openNoteEditor"
+            @request-annotations="loadAnnotations"
         />
 
-        <Transition name="sheet">
-            <div v-if="showToc" class="absolute inset-0 z-20 flex lg:hidden">
-                <div class="flex-1 bg-black/30" @click="showToc = false" />
-                <ReaderTocPanel
-                    class="w-[min(88vw,320px)] shadow-xl"
-                    :items="tocItems"
-                    :total-pages="totalPages"
-                    closable
-                    @close="showToc = false"
-                />
-            </div>
-        </Transition>
+        <div
+            v-if="showToc && ! isFullscreen"
+            class="absolute inset-0 z-20 flex lg:hidden"
+        >
+            <div class="flex-1 bg-black/30" @click="showToc = false" />
+            <ReaderTocPanel
+                class="w-[min(88vw,320px)] shadow-xl"
+                :outline-items="outlineItems"
+                :bookmark-items="readerBookmarks"
+                :user-notes="readerNotes"
+                :annotation-items="annotationItems"
+                :annotations-loading="annotationsLoading"
+                :current-page="livePageState.currentPage"
+                :total-pages="displayTotalPages"
+                :fetch-thumbnail="fetchPageThumbnail"
+                :thumbnails-ready="thumbnailsReady"
+                closable
+                @close="showToc = false"
+                @select="onTocSelect"
+                @remove-bookmark="removeReaderBookmark"
+                @remove-note="removeReaderNote"
+                @add-note="openNoteEditor"
+                @request-annotations="loadAnnotations"
+            />
+        </div>
 
-        <!-- Main reading column -->
-        <div class="flex min-h-0 min-w-0 flex-col">
-            <header class="safe-top flex shrink-0 items-center justify-between border-b border-black/5 px-4 py-3 lg:px-6">
-                <button class="flex items-center gap-1 text-sm font-medium" @click="router.push(`/resources/${route.params.slug}`)">
+        <div class="reader-shell__main flex min-h-0 min-w-0 flex-col">
+            <header
+                v-show="! isFullscreen"
+                class="safe-top bg-surface border-app flex shrink-0 items-center justify-between border-b px-4 py-3 lg:px-6"
+            >
+                <button
+                    type="button"
+                    class="bg-surface-muted tap-feedback text-app flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium"
+                    @click="router.push(`/resources/${route.params.slug}`)"
+                >
                     <IconBack class="h-4 w-4" />
-                    <span class="hidden sm:inline">Library</span>
+                    <span class="hidden sm:inline">Back</span>
                 </button>
-                <div class="min-w-0 flex-1 px-4 text-center lg:text-left">
-                    <p class="truncate text-sm font-semibold lg:hidden">{{ resource?.title }}</p>
-                    <p class="hidden truncate text-sm font-semibold lg:block">{{ resource?.title }}</p>
-                    <p class="hidden truncate text-xs text-slate-500 lg:block">{{ primaryAuthor }}</p>
+
+                <div class="min-w-0 flex-1 px-3 text-center lg:px-4 lg:text-left">
+                    <p class="text-app truncate text-sm font-semibold">{{ resource?.title }}</p>
+                    <p class="text-muted hidden truncate text-xs lg:block">{{ primaryAuthor }}</p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button class="hidden h-9 w-9 items-center justify-center rounded-lg bg-black/5 sm:flex">🔍</button>
-                    <button class="hidden h-9 w-9 items-center justify-center rounded-lg bg-black/5 sm:flex">🔖</button>
-                    <button class="flex h-9 w-9 items-center justify-center rounded-lg bg-black/5 lg:hidden" @click="showToc = true">☰</button>
-                    <button class="flex h-9 w-9 items-center justify-center rounded-lg bg-black/5 lg:hidden" @click="showAppearance = true">Aa</button>
+
+                <div class="flex items-center gap-1.5 sm:gap-2">
+                    <button
+                        type="button"
+                        class="bg-surface-muted tap-feedback flex h-9 w-9 items-center justify-center rounded-full"
+                        :class="isCurrentPageBookmarked ? 'bg-brand-subtle text-brand' : 'text-app'"
+                        :title="isCurrentPageBookmarked ? 'Remove bookmark' : 'Bookmark this page'"
+                        @click="toggleCurrentPageBookmark"
+                    >
+                        <IconBookmark class="h-4 w-4" :class="{ 'fill-current': isCurrentPageBookmarked }" />
+                    </button>
+                    <button
+                        type="button"
+                        class="bg-surface-muted tap-feedback text-app flex h-9 w-9 items-center justify-center rounded-full"
+                        title="Add note"
+                        @click="openNoteEditor(livePageState.currentPage)"
+                    >
+                        <IconNotes class="h-4 w-4" />
+                    </button>
+                    <button
+                        type="button"
+                        class="bg-surface-muted tap-feedback text-app flex h-9 w-9 items-center justify-center rounded-full lg:hidden"
+                        title="Contents"
+                        @click="showToc = true"
+                    >
+                        <IconReaderVertical class="h-4 w-4" />
+                    </button>
+                    <button
+                        type="button"
+                        class="bg-surface-muted tap-feedback text-app flex h-9 w-9 items-center justify-center rounded-full"
+                        title="Full screen"
+                        @click="enterFullscreen"
+                    >
+                        <IconReaderExpand class="h-4 w-4" />
+                    </button>
+                    <button
+                        type="button"
+                        class="bg-surface-muted tap-feedback text-app flex h-9 w-9 items-center justify-center rounded-full lg:hidden"
+                        title="Reading settings"
+                        @click="showSettings = true"
+                    >
+                        <IconEllipsisVertical class="h-4 w-4" />
+                    </button>
                 </div>
             </header>
 
-            <div class="min-h-0 flex-1 overflow-y-auto px-5 py-8 lg:px-12" :style="readingStyle">
-                <p class="text-center text-xs font-semibold uppercase tracking-widest text-primary-600">Chapter 1</p>
-                <h1 class="mt-3 text-center font-serif text-2xl font-bold leading-tight lg:text-4xl">
-                    Our Place in the Cosmos
-                </h1>
-                <div class="mx-auto mt-6 max-w-prose font-serif text-base leading-relaxed lg:text-lg" :style="{ fontFamily }">
-                    <blockquote class="my-6 border-l-4 border-amber-300 bg-amber-100/80 px-4 py-3 italic text-slate-700">
-                        "We are a way for the cosmos to know itself." — Carl Sagan
-                    </blockquote>
-                    <p class="mb-4">
-                        The integrated EPUB/PDF reader will render full document content here.
-                        On tablet, the table of contents and appearance panels stay visible beside the reading pane.
-                    </p>
-                    <p>
-                        Font size, themes, and line spacing update live from the appearance panel.
-                    </p>
-                </div>
+            <div
+                v-if="sourceError"
+                class="text-red-600 flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 text-center text-sm"
+            >
+                <p>{{ sourceError }}</p>
+                <button
+                    class="text-brand font-medium"
+                    type="button"
+                    @click="loadReader"
+                >
+                    Try again
+                </button>
             </div>
 
-            <footer class="safe-bottom shrink-0 border-t border-black/5 px-4 py-3 lg:px-6">
-                <input v-model="currentPage" type="range" min="1" :max="totalPages" class="w-full accent-primary-600">
-                <div class="mt-2 flex items-center justify-between text-xs text-slate-500">
-                    <span>{{ currentPage }} of {{ totalPages }}</span>
-                    <span class="hidden sm:inline">4 pages left in chapter</span>
+            <div
+                v-else-if="sourceLoading || ! pdfSource"
+                class="text-muted flex min-h-0 flex-1 items-center justify-center text-sm"
+            >
+                Loading document…
+            </div>
+
+            <div
+                v-else
+                ref="pdfStageRef"
+                class="reader-shell__pdf-stage bg-app relative flex min-h-0 flex-1 flex-col"
+                @click="onReaderTap"
+            >
+                <div
+                    v-show="isFullscreen && showFullscreenChrome"
+                    class="reader-fullscreen-chrome safe-top pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-4 py-3"
+                >
+                    <button
+                        type="button"
+                        class="reader-fullscreen-chrome__button ring-app pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full ring-1"
+                        title="Exit full screen"
+                        @click="exitFullscreen"
+                    >
+                        <IconReaderCompress class="h-4 w-4" />
+                    </button>
+                    <p class="reader-fullscreen-chrome__button ring-app pointer-events-none rounded-full px-3 py-1.5 text-xs font-medium ring-1">
+                        Page {{ livePageState.currentPage }} / {{ displayTotalPages }}
+                    </p>
+                    <div class="pointer-events-auto flex items-center gap-2">
+                        <button
+                            type="button"
+                            class="reader-fullscreen-chrome__button ring-app flex h-10 w-10 items-center justify-center rounded-full ring-1"
+                            :class="isCurrentPageBookmarked ? 'bg-brand-subtle text-brand' : ''"
+                            :title="isCurrentPageBookmarked ? 'Remove bookmark' : 'Bookmark this page'"
+                            @click.stop="toggleCurrentPageBookmark"
+                        >
+                            <IconBookmark class="h-4 w-4" :class="{ 'fill-current': isCurrentPageBookmarked }" />
+                        </button>
+                        <button
+                            type="button"
+                            class="reader-fullscreen-chrome__button ring-app flex h-10 w-10 items-center justify-center rounded-full ring-1"
+                            title="Add note"
+                            @click.stop="openNoteEditor(livePageState.currentPage)"
+                        >
+                            <IconNotes class="h-4 w-4" />
+                        </button>
+                        <button
+                            type="button"
+                            class="reader-fullscreen-chrome__button ring-app flex h-10 w-10 items-center justify-center rounded-full ring-1"
+                            :title="readingMode === 'vertical' ? 'Switch to horizontal reading' : 'Switch to vertical reading'"
+                            @click.stop="toggleReadingMode"
+                        >
+                            <IconReaderHorizontal v-if="readingMode === 'vertical'" class="h-4 w-4" />
+                            <IconReaderVertical v-else class="h-4 w-4" />
+                        </button>
+                    </div>
                 </div>
-            </footer>
-        </div>
 
-        <!-- Appearance: tablet persistent / mobile sheet -->
-        <ReaderAppearancePanel
-            v-model="theme"
-            class="hidden lg:flex"
-            :font-family="fontFamily"
-            :font-size="fontSize"
-            :line-spacing="lineSpacing"
-            @update:font-family="fontFamily = $event"
-            @update:font-size="fontSize = $event"
-            @update:line-spacing="lineSpacing = $event"
-        />
+                <button
+                    v-if="isFullscreen"
+                    type="button"
+                    class="reader-fullscreen-exit ring-app tap-feedback flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold ring-1"
+                    @click="exitFullscreen"
+                >
+                    <IconReaderCompress class="h-4 w-4" />
+                    Exit
+                </button>
 
-        <Transition name="sheet-up">
-            <div v-if="showAppearance" class="absolute inset-x-0 bottom-0 z-20 lg:hidden">
-                <ReaderAppearancePanel
-                    v-model="theme"
-                    class="rounded-t-3xl shadow-2xl"
-                    :font-family="fontFamily"
-                    :font-size="fontSize"
-                    :line-spacing="lineSpacing"
-                    closable
-                    @update:font-family="fontFamily = $event"
-                    @update:font-size="fontSize = $event"
-                    @update:line-spacing="lineSpacing = $event"
-                    @close="showAppearance = false"
+                <component
+                    :is="readerViewerComponent"
+                    ref="viewerRef"
+                    class="min-h-0 flex-1"
+                    :source="pdfSource"
+                    :reading-mode="viewportReadingMode"
+                    @document-ready="onDocumentReady"
+                >
+                    <template #footer="footerProps">
+                        <ReaderPdfFooter
+                            v-show="! isFullscreen"
+                            v-bind="footerProps"
+                            @page-state="livePageState = $event"
+                        />
+                    </template>
+                </component>
+
+                <ReaderNoteEditor
+                    contained
+                    :open="showNoteEditor"
+                    :page="notePage"
+                    v-model="noteDraft"
+                    @close="closeNoteEditor"
+                    @save="saveNote"
                 />
             </div>
-        </Transition>
+
+            <ReaderNoteEditor
+                v-if="! pdfSource"
+                :open="showNoteEditor"
+                :page="notePage"
+                v-model="noteDraft"
+                @close="closeNoteEditor"
+                @save="saveNote"
+            />
+        </div>
+
+        <ReaderAppearancePanel
+            v-show="! isFullscreen"
+            class="reader-shell__sidebar-right hidden lg:flex"
+            :reading-mode="readingMode"
+            :horizontal-disabled="isPortrait"
+            :is-fullscreen="isFullscreen"
+            @update:reading-mode="readingMode = $event"
+            @update:is-fullscreen="setFullscreenFromPanel"
+        />
+
+        <div v-if="showSettings && ! isFullscreen" class="absolute inset-x-0 bottom-0 z-20 lg:hidden">
+            <ReaderAppearancePanel
+                class="rounded-t-3xl shadow-2xl"
+                :reading-mode="readingMode"
+                :horizontal-disabled="isPortrait"
+                :is-fullscreen="isFullscreen"
+                closable
+                @update:reading-mode="readingMode = $event"
+                @update:is-fullscreen="setFullscreenFromPanel"
+                @close="showSettings = false"
+            />
+        </div>
     </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { hydrateAppStorage, reloadAppStorage } from '@/lib/appStorage';
+import { shouldUseMobilePdfViewer } from '@/lib/shouldUseMobilePdfViewer';
 import IconBack from '@/components/icons/IconBack.vue';
-import ReaderTocPanel from '@/components/reader/ReaderTocPanel.vue';
+import IconBookmark from '@/components/icons/IconBookmark.vue';
+import IconEllipsisVertical from '@/components/icons/IconEllipsisVertical.vue';
+import IconNotes from '@/components/icons/IconNotes.vue';
+import IconReaderCompress from '@/components/icons/IconReaderCompress.vue';
+import IconReaderExpand from '@/components/icons/IconReaderExpand.vue';
+import IconReaderHorizontal from '@/components/icons/IconReaderHorizontal.vue';
+import IconReaderVertical from '@/components/icons/IconReaderVertical.vue';
 import ReaderAppearancePanel from '@/components/reader/ReaderAppearancePanel.vue';
+import ReaderNoteEditor from '@/components/reader/ReaderNoteEditor.vue';
+import ReaderPdfFooter from '@/components/reader/ReaderPdfFooter.vue';
+import ReaderTocPanel from '@/components/reader/ReaderTocPanel.vue';
+import { useReaderPageBookmarks } from '@/composables/useReaderPageBookmarks';
+import { useReaderPreferences } from '@/composables/useReaderPreferences';
+import { useReaderUserNotes } from '@/composables/useReaderUserNotes';
+import { useReaderViewport } from '@/composables/useReaderViewport';
+import { useToast } from '@/composables/useToast';
+import { useLibrary } from '@/composables/useLibrary';
+import { isPdfResource, resolvePdfDocumentSource } from '@/composables/usePdfDocumentSource';
+
+const PdfReaderViewer = defineAsyncComponent(() => import('@/components/reader/PdfReaderViewer.vue'));
+const MobilePdfViewer = defineAsyncComponent(() => import('@/components/reader/MobilePdfViewer.vue'));
+const readerViewerComponent = computed(() => (
+    shouldUseMobilePdfViewer() ? MobilePdfViewer : PdfReaderViewer
+));
 
 const route = useRoute();
 const router = useRouter();
+const readerPreferences = useReaderPreferences();
+const { isPortrait, resolveReadingMode } = useReaderViewport();
+const { showToast } = useToast();
+const library = useLibrary();
 
 const resource = ref(null);
+const pdfSource = ref(null);
+const sourceLoading = ref(true);
+const sourceError = ref(null);
+const viewerRef = ref(null);
+const pdfStageRef = ref(null);
 const showToc = ref(false);
-const showAppearance = ref(false);
-const theme = ref('sepia');
-const fontFamily = ref('Georgia');
-const fontSize = ref(18);
-const lineSpacing = ref('normal');
-const currentPage = ref(13);
-const totalPages = ref(320);
+const showSettings = ref(false);
+const showNoteEditor = ref(false);
+const noteDraft = ref('');
+const notePage = ref(1);
+const isFullscreen = ref(false);
+const showFullscreenChrome = ref(true);
+const readingMode = ref(readerPreferences.initialReadingMode);
+const livePageState = ref({ currentPage: 1, totalPages: 1 });
+const outlineItems = ref([]);
+const annotationItems = ref([]);
+const annotationsLoading = ref(false);
+const annotationsFetched = ref(false);
+const thumbnailsReady = ref(false);
+
+const slugRef = computed(() => route.params.slug);
+const {
+    bookmarks: readerBookmarks,
+    toggleBookmark: toggleReaderBookmark,
+    isPageBookmarked,
+    removeBookmark: removeReaderBookmark,
+    refresh: refreshReaderBookmarks,
+} = useReaderPageBookmarks(slugRef);
+const {
+    notes: readerNotes,
+    addNote: addReaderNote,
+    removeNote: removeReaderNote,
+    refresh: refreshReaderNotes,
+} = useReaderUserNotes(slugRef);
+
+let fullscreenChromeTimer = null;
 
 const primaryAuthor = computed(() => resource.value?.authors?.[0]?.name ?? '');
 
-const themeClass = computed(() => ({
-    light: 'bg-white text-slate-900',
-    sepia: 'bg-[#f4ecd8] text-slate-900',
-    gray: 'bg-slate-100 text-slate-900',
-    dark: 'bg-slate-900 text-slate-100',
-}[theme.value]));
+const metadataTotalPages = computed(() => resource.value?.metadata?.page_count ?? 1);
 
-const lineHeightMap = { tight: 1.4, normal: 1.7, wide: 2 };
+const displayTotalPages = computed(() => Math.max(
+    metadataTotalPages.value,
+    livePageState.value.totalPages || 1,
+));
 
-const readingStyle = computed(() => ({
-    fontSize: `${fontSize.value}px`,
-    lineHeight: lineHeightMap[lineSpacing.value],
-}));
+const isCurrentPageBookmarked = computed(() => (
+    isPageBookmarked(livePageState.value.currentPage)
+));
 
-const tocItems = [
-    { title: 'Cover', page: 1, active: false },
-    { title: 'Title Page', page: 2, active: false },
-    { title: '1 Our Place in the Cosmos', page: 13, active: true },
-    { title: '2 The Scale of the Universe', page: 28, active: false },
-];
+const viewportReadingMode = computed(() => resolveReadingMode(readingMode.value));
 
-onMounted(async () => {
-    const response = await window.axios.get(`/resources/${route.params.slug}`);
-    resource.value = response.data.data;
-    totalPages.value = response.data.data?.metadata?.page_count ?? 320;
+function refreshReaderLayout() {
+    nextTick(() => {
+        viewerRef.value?.refreshLayout();
+    });
+}
+
+watch(viewportReadingMode, () => {
+    refreshReaderLayout();
+});
+
+watch(isPortrait, () => {
+    refreshReaderLayout();
+});
+
+watch(readingMode, () => {
+    readerPreferences.persist({
+        readingMode: readingMode.value,
+    });
+});
+
+watch(isFullscreen, (active) => {
+    if (active) {
+        showFullscreenChrome.value = true;
+        scheduleFullscreenChromeHide();
+        return;
+    }
+
+    clearFullscreenChromeTimer();
+    showFullscreenChrome.value = true;
+});
+
+function onFullscreenChange() {
+    const active = document.fullscreenElement === pdfStageRef.value;
+    isFullscreen.value = active;
+
+    if (active) {
+        showFullscreenChrome.value = true;
+        scheduleFullscreenChromeHide();
+    } else {
+        clearFullscreenChromeTimer();
+        showFullscreenChrome.value = true;
+    }
+
+    nextTick(() => {
+        viewerRef.value?.refreshLayout();
+    });
+}
+
+async function enterFullscreen() {
+    const stage = pdfStageRef.value;
+
+    if (! stage) {
+        return;
+    }
+
+    try {
+        if (document.fullscreenElement !== stage) {
+            await stage.requestFullscreen();
+        }
+    } catch {
+        isFullscreen.value = true;
+        await nextTick();
+        viewerRef.value?.refreshLayout();
+    }
+}
+
+async function exitFullscreen() {
+    if (document.fullscreenElement === pdfStageRef.value) {
+        await document.exitFullscreen();
+        return;
+    }
+
+    isFullscreen.value = false;
+    await nextTick();
+    viewerRef.value?.refreshLayout();
+}
+
+function setFullscreenFromPanel(enabled) {
+    if (enabled) {
+        enterFullscreen();
+        return;
+    }
+
+    exitFullscreen();
+}
+
+function clearFullscreenChromeTimer() {
+    if (fullscreenChromeTimer) {
+        window.clearTimeout(fullscreenChromeTimer);
+        fullscreenChromeTimer = null;
+    }
+}
+
+function scheduleFullscreenChromeHide() {
+    clearFullscreenChromeTimer();
+    fullscreenChromeTimer = window.setTimeout(() => {
+        showFullscreenChrome.value = false;
+    }, 4000);
+}
+
+function onReaderTap() {
+    if (! isFullscreen.value) {
+        return;
+    }
+
+    showFullscreenChrome.value = ! showFullscreenChrome.value;
+
+    if (showFullscreenChrome.value) {
+        scheduleFullscreenChromeHide();
+    } else {
+        clearFullscreenChromeTimer();
+    }
+}
+
+function toggleReadingMode() {
+    readingMode.value = readingMode.value === 'vertical' ? 'horizontal' : 'vertical';
+}
+
+function onDocumentReady({ outline }) {
+    outlineItems.value = outline ?? [];
+    thumbnailsReady.value = true;
+
+    if (! shouldUseMobilePdfViewer()) {
+        refreshReaderLayout();
+    }
+}
+
+async function loadAnnotations() {
+    if (annotationsLoading.value || annotationsFetched.value) {
+        return;
+    }
+
+    annotationsLoading.value = true;
+
+    try {
+        annotationItems.value = await viewerRef.value?.loadAnnotations() ?? [];
+    } finally {
+        annotationsLoading.value = false;
+        annotationsFetched.value = true;
+    }
+}
+
+function fetchPageThumbnail(pageNumber) {
+    return viewerRef.value?.getPageThumbnail?.(pageNumber) ?? Promise.resolve(null);
+}
+
+function toggleCurrentPageBookmark() {
+    const page = Number(livePageState.value.currentPage);
+
+    if (! page || page < 1) {
+        showToast('Wait for the page to finish loading.');
+        return;
+    }
+
+    const wasBookmarked = isPageBookmarked(page);
+    const saved = toggleReaderBookmark(page);
+
+    if (wasBookmarked) {
+        showToast('Bookmark removed');
+        return;
+    }
+
+    if (saved) {
+        showToast(`Page ${page} bookmarked`);
+        return;
+    }
+
+    showToast('Could not save bookmark. Try again.');
+}
+
+function openNoteEditor(page = livePageState.value.currentPage) {
+    notePage.value = Number(page) || livePageState.value.currentPage;
+    noteDraft.value = '';
+    showNoteEditor.value = true;
+}
+
+function closeNoteEditor() {
+    showNoteEditor.value = false;
+    noteDraft.value = '';
+}
+
+function saveNote() {
+    const entry = addReaderNote(notePage.value, noteDraft.value);
+
+    if (! entry) {
+        return;
+    }
+
+    closeNoteEditor();
+    showToast(`Note saved on page ${entry.page}`);
+}
+
+async function loadReader() {
+    const slug = route.params.slug;
+    sourceLoading.value = true;
+    sourceError.value = null;
+    pdfSource.value = null;
+    outlineItems.value = [];
+    annotationItems.value = [];
+    annotationsFetched.value = false;
+    thumbnailsReady.value = false;
+    livePageState.value = { currentPage: 1, totalPages: metadataTotalPages.value || 1 };
+
+    try {
+        const response = await window.axios.get(`/resources/${slug}`);
+        resource.value = response.data.data;
+
+        if (! isPdfResource(resource.value)) {
+            sourceError.value = 'In-app reading is only available for PDF resources.';
+            return;
+        }
+
+        pdfSource.value = await resolvePdfDocumentSource(slug, { resource: resource.value });
+        refreshReaderLayout();
+    } catch (err) {
+        sourceError.value = err?.message ?? 'Could not open this document.';
+    } finally {
+        sourceLoading.value = false;
+    }
+}
+
+function onTocSelect(page) {
+    viewerRef.value?.scrollToPage(page);
+    showToc.value = false;
+}
+
+onMounted(() => {
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('visibilitychange', onReaderVisibilityChange);
+    loadReader();
+});
+
+async function onReaderVisibilityChange() {
+    if (document.visibilityState !== 'visible') {
+        return;
+    }
+
+    await reloadAppStorage().catch(() => {});
+    refreshReaderBookmarks();
+    refreshReaderNotes();
+    library.refreshReaderCounts();
+}
+
+onBeforeUnmount(() => {
+    document.removeEventListener('fullscreenchange', onFullscreenChange);
+    document.removeEventListener('visibilitychange', onReaderVisibilityChange);
+    clearFullscreenChromeTimer();
+
+    if (document.fullscreenElement === pdfStageRef.value) {
+        document.exitFullscreen().catch(() => {});
+    }
+});
+
+watch(() => route.params.slug, () => {
+    exitFullscreen();
+    loadReader();
 });
 </script>
-
-<style scoped>
-.sheet-enter-active, .sheet-leave-active { transition: opacity 0.2s ease; }
-.sheet-enter-from, .sheet-leave-to { opacity: 0; }
-.sheet-up-enter-active, .sheet-up-leave-active { transition: transform 0.25s ease; }
-.sheet-up-enter-from, .sheet-up-leave-to { transform: translateY(100%); }
-</style>

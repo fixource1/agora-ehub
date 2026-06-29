@@ -11,6 +11,8 @@ if [[ -d "$ROOT/public/build" ]] && ! [[ -w "$ROOT/public/build" ]]; then
 fi
 
 bash "$ROOT/scripts/vite.sh" build
+bash "$ROOT/scripts/node.sh" scripts/copy-pdfium-wasm.mjs
+bash "$ROOT/scripts/node.sh" scripts/copy-pdfjs-worker.mjs
 bash "$ROOT/scripts/node.sh" scripts/generate-nativephp-brand-assets.mjs
 
 echo "Frontend build complete."

@@ -102,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useLibrary } from '@/composables/useLibrary';
 import { useToast } from '@/composables/useToast';
 import CreateCollectionModal from '@/components/library/CreateCollectionModal.vue';
@@ -123,13 +123,13 @@ const library = useLibrary();
 const { showToast } = useToast();
 const createModalOpen = ref(false);
 
-const navItems = [
+const navItems = computed(() => [
     { id: 'offline', label: 'Offline', count: library.state.counts.offline, icon: IconDownload },
     { id: 'all', label: 'All Resources', count: library.state.counts.allResources, icon: IconBooks },
     { id: 'notes', label: 'Notes', count: library.state.counts.notes, icon: IconNotes },
     { id: 'bookmarks', label: 'Bookmarks', count: library.state.counts.bookmarks, icon: IconBookmark },
     { id: 'recent', label: 'Recently Opened', count: library.state.recentSlugs.length, icon: IconClock },
-];
+]);
 
 function selectSection(id) {
     library.setActiveSection(id);

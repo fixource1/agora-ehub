@@ -1,7 +1,7 @@
 # Resolve a Docker API URL that the Android emulator can reach (WSL2 + Windows).
 param(
     [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot),
-    [int]$Port = 8080,
+    [int]$Port = 8000,
     [switch]$UpdateNativeEnv,
     [switch]$SetupFirewall
 )

@@ -168,7 +168,7 @@ docker compose up -d
 npm run build   # or npm run dev
 ```
 
-Open http://localhost:8080 and resize to **768px+** for tablet layout (persistent sidebar, 3-column resource detail, 3-pane reader).
+Open http://localhost:8000 and resize to **768px+** for tablet layout (persistent sidebar, 3-column resource detail, 3-pane reader).
 
 ### NativePHP mobile test server
 
@@ -274,7 +274,7 @@ The app opens at `NATIVEPHP_START_URL` (`/home`).
 | Build log | `nativephp/android-build.log` |
 | Profile shows Embedded API but you set remote API | Edit `config/nativephp.env`, bump `NATIVEPHP_APP_VERSION_CODE`, rebuild APK |
 | `.env` mobile settings disappear after WSL sync | Use `config/nativephp.env` instead of editing `.env` directly |
-| Remote API test fails (`10.0.2.2`) with Docker running | WSL2 often needs the **WSL IP** instead. Run `scripts\setup-android-api-access.cmd` on Windows, then rebuild. Ensure `curl http://127.0.0.1:8080/api/v1/resources` works in PowerShell. |
+| Remote API test fails (`10.0.2.2`) with Docker running | WSL2 often needs the **WSL IP** instead. Run `scripts\setup-android-api-access.cmd` on Windows, then rebuild. Ensure `curl http://127.0.0.1:8000/api/v1/resources` works in PowerShell. |
 
 ## Environment variables
 
@@ -287,14 +287,14 @@ For **Android API mode and version code**, edit **`config/nativephp.env`** on Wi
 ```env
 # config/nativephp.env — survives WSL sync
 MOBILE_API_ENABLED=true
-MOBILE_API_BASE_URL=http://10.0.2.2:8080
+MOBILE_API_BASE_URL=http://10.0.2.2:8000
 NATIVEPHP_APP_VERSION_CODE=7
 ```
 
 | Mode | Profile shows | When to use |
 |------|---------------|-------------|
 | `MOBILE_API_ENABLED=false` | Embedded API (`127.0.0.1`) | Offline SQLite on device |
-| `MOBILE_API_ENABLED=true` | Remote API (`10.0.2.2:8080`) | Live Docker on WSL from emulator |
+| `MOBILE_API_ENABLED=true` | Remote API (`10.0.2.2:8000`) | Live Docker on WSL from emulator |
 
 After changing `config/nativephp.env`, bump `NATIVEPHP_APP_VERSION_CODE`, run `npm run build`, then `scripts\native-run-android.cmd`. Clear app storage on the emulator if the Profile screen still shows the old mode.
 

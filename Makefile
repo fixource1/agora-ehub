@@ -34,6 +34,8 @@ seed:
 	docker compose exec app php artisan db:seed
 
 test:
+	docker compose exec -T postgres psql -U agora_ehub -tc "SELECT 1 FROM pg_database WHERE datname = 'agora_ehub_testing'" | grep -q 1 \
+		|| docker compose exec -T postgres psql -U agora_ehub -c "CREATE DATABASE agora_ehub_testing"
 	docker compose exec app php artisan test
 
 logs:
@@ -49,7 +51,7 @@ setup: build up
 	docker compose exec app php artisan key:generate --force
 	docker compose exec app php artisan migrate --force
 	docker compose exec app php artisan storage:link
-	@echo "AGORA e-Hub is ready at http://localhost:8080"
+	@echo "AGORA e-Hub is ready at http://localhost:8000"
 
 %:
 	@:

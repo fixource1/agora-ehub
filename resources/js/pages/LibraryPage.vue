@@ -313,6 +313,8 @@ watch(() => library.state.downloadedSlugs.size, () => {
 }, { immediate: true });
 
 onMounted(async () => {
+    library.refreshReaderCounts();
+
     if (! loaded.value) {
         if (usesServerFilters.value) {
             await setFilters(filterApiParams[activeFilter.value] ?? {});

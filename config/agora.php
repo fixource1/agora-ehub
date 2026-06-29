@@ -9,7 +9,7 @@ return [
     |
     | When enabled on Android/iOS, the Vue app calls this base URL instead of
     | the embedded Laravel API. On WSL2, the emulator often reaches Docker via the
-    | WSL IP (e.g. http://172.x.x.x:8080) rather than 10.0.2.2. Run
+    | WSL IP (e.g. http://172.x.x.x:8000) rather than 10.0.2.2. Run
     | scripts/setup-android-api-access.cmd before building to auto-detect.
     |
     */

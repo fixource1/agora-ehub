@@ -22,6 +22,8 @@ class UserResource extends JsonResource
             'roles' => $this->whenLoaded('roles', fn () => $this->getRoleNames()),
             'role' => $this->getRoleNames()->first(),
             'can_manage_resources' => $this->can('manage resources'),
+            'can_manage_users' => $this->can('manage users'),
+            'can_manage_categories' => $this->can('manage categories'),
         ];
     }
 }

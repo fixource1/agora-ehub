@@ -1,6 +1,7 @@
 import { computed, reactive, ref } from 'vue';
 import { mergeResourcesWithOffline } from '@/composables/useOfflineStore';
 import { useResourceCache } from '@/composables/useResourceCache';
+import { useLibrary } from '@/composables/useLibrary';
 
 const state = reactive({
     resources: [],
@@ -31,6 +32,7 @@ function paramsEqual(left, right) {
 
 export function useResourcesList() {
     const { seedFromList } = useResourceCache();
+    const library = useLibrary();
 
     async function fetchPage(params, { append = false } = {}) {
         const response = await window.axios.get('/resources', { params });
@@ -55,6 +57,7 @@ export function useResourcesList() {
         state.total = meta.total ?? state.resources.length;
         state.loaded = true;
         state.error = null;
+        library.setAllResourcesCount(state.total);
 
         return state.resources;
     }

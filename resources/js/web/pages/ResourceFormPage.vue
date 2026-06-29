@@ -39,28 +39,39 @@
 
                     <div class="mt-6">
                         <span class="text-app mb-3 block text-sm font-medium">Resource type <span class="text-red-500">*</span></span>
-                        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <p v-if="lookupsLoading" class="text-muted text-sm">Loading resource types...</p>
+                        <div v-else-if="!resourceTypes.length" class="web-upload-zone rounded-xl p-4 text-center">
+                            <p class="text-muted text-sm">Resource types could not be loaded.</p>
+                            <button
+                                type="button"
+                                class="bg-brand mt-3 rounded-lg px-4 py-2 text-sm font-medium text-white"
+                                @click="loadLookups"
+                            >
+                                Retry
+                            </button>
+                        </div>
+                        <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             <button
                                 v-for="type in resourceTypes"
                                 :key="type.id"
                                 type="button"
                                 class="web-type-card rounded-xl p-4 text-left"
-                                :class="form.resource_type_id === type.id ? 'web-type-card-selected' : ''"
+                                :class="Number(form.resource_type_id) === Number(type.id) ? 'web-type-card-selected' : ''"
                                 @click="form.resource_type_id = type.id"
                             >
                                 <div class="flex items-start justify-between gap-2">
                                     <div
                                         class="web-type-card-icon"
-                                        :class="form.resource_type_id === type.id ? 'web-type-card-icon--selected' : ''"
+                                        :class="Number(form.resource_type_id) === Number(type.id) ? 'web-type-card-icon--selected' : ''"
                                     >
                                         <component :is="getResourceTypeIcon(type.slug)" class="h-6 w-6" />
                                     </div>
                                     <span
                                         class="web-type-card-check mt-1 flex h-4 w-4 items-center justify-center rounded-full border"
-                                        :class="form.resource_type_id === type.id ? 'border-brand bg-brand text-white' : 'border-app'"
+                                        :class="Number(form.resource_type_id) === Number(type.id) ? 'border-brand bg-brand text-white' : 'border-app'"
                                     >
                                         <svg
-                                            v-if="form.resource_type_id === type.id"
+                                            v-if="Number(form.resource_type_id) === Number(type.id)"
                                             class="h-2.5 w-2.5"
                                             viewBox="0 0 12 12"
                                             fill="none"
@@ -73,7 +84,7 @@
                                     </span>
                                 </div>
                                 <p class="text-app mt-3 font-medium">{{ type.name }}</p>
-                                <p class="text-muted mt-1 text-xs leading-relaxed">{{ type.description }}</p>
+                                <p v-if="type.description" class="text-muted mt-1 text-xs leading-relaxed">{{ type.description }}</p>
                             </button>
                         </div>
                     </div>
@@ -306,6 +317,7 @@ const auth = useAuthStore();
 
 const resourceTypes = ref([]);
 const categories = ref([]);
+const lookupsLoading = ref(false);
 const saving = ref(false);
 const error = ref('');
 const notice = ref('');
@@ -331,7 +343,7 @@ const form = reactive({
 const isEdit = computed(() => Boolean(resourceSlug.value));
 
 const selectedTypeName = computed(() =>
-    resourceTypes.value.find((type) => type.id === form.resource_type_id)?.name ?? null,
+    resourceTypes.value.find((type) => Number(type.id) === Number(form.resource_type_id))?.name ?? null,
 );
 
 const canManageResources = computed(() => Boolean(auth.user?.can_manage_resources));
@@ -489,14 +501,43 @@ function applyResource(resource) {
     existingPrimaryFile.value = resource.primary_file ?? null;
 }
 
+function normalizeLookupList(payload) {
+    if (Array.isArray(payload)) {
+        return payload.filter((item) => item && typeof item.id !== 'undefined' && item.name);
+    }
+
+    return [];
+}
+
 async function loadLookups() {
-    const [typesRes, categoriesRes] = await Promise.all([
-        client.get('/lookups/resource-types'),
-        client.get('/lookups/categories'),
-    ]);
-    resourceTypes.value = typesRes.data.data ?? [];
-    categories.value = categoriesRes.data.data ?? [];
-    if (!form.resource_type_id && resourceTypes.value.length) {
+    error.value = '';
+    lookupsLoading.value = true;
+
+    try {
+        const cacheBust = Date.now();
+        const lookupConfig = {
+            params: { _: cacheBust },
+            headers: { 'Cache-Control': 'no-cache' },
+        };
+        const [typesRes, categoriesRes] = await Promise.all([
+            client.get('/lookups/resource-types', lookupConfig),
+            client.get('/lookups/categories', lookupConfig),
+        ]);
+        resourceTypes.value = normalizeLookupList(typesRes.data.data);
+        categories.value = normalizeLookupList(categoriesRes.data.data);
+
+        if (!resourceTypes.value.length) {
+            error.value = 'Resource types could not be loaded. Please retry or refresh the page.';
+        }
+    } catch {
+        resourceTypes.value = [];
+        categories.value = [];
+        error.value = 'Unable to load resource types and categories. Please refresh the page.';
+    } finally {
+        lookupsLoading.value = false;
+    }
+
+    if (!isEdit.value && !form.resource_type_id && resourceTypes.value.length) {
         form.resource_type_id = resourceTypes.value[0].id;
     }
 }
@@ -512,9 +553,15 @@ onMounted(async () => {
     if (!auth.user) {
         await auth.initialize();
     }
-    await loadLookups();
+
     if (isEdit.value) {
-        await loadResource();
+        try {
+            await loadResource();
+        } catch {
+            error.value = 'Unable to load this resource.';
+        }
     }
+
+    await loadLookups();
 });
 </script>

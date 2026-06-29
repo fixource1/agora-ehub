@@ -37,9 +37,9 @@ Open:
 
 | URL | App |
 |-----|-----|
-| http://localhost:8080 | Reader |
-| http://localhost:8080/author | Author portal |
-| http://localhost:8080/admin | Filament admin |
+| http://localhost:8000 | Reader |
+| http://localhost:8000/author | Author portal |
+| http://localhost:8000/admin | Filament admin |
 | http://localhost:5173 | Vite dev (with `dev` profile) |
 
 ## Default accounts
@@ -54,7 +54,7 @@ Open:
 
 | Service | Container | Port |
 |---------|-----------|------|
-| Nginx | AGORA_e-HUB-nginx | 8080 |
+| Nginx | AGORA_e-HUB-nginx | 8000 |
 | PHP-FPM | AGORA_e-HUB-app | 9000 |
 | PostgreSQL | AGORA_e-HUB-postgres | 5432 |
 | Redis | AGORA_e-HUB-redis | 6379 |

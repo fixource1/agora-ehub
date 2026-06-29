@@ -1,9 +1,16 @@
 import { reactive } from 'vue';
 import { getDownloadedSlugs, hydrateLegacyDownloadSlugs } from '@/composables/useOfflineStore';
-
-const BOOKMARKS_STORAGE_KEY = 'agora-bookmark-slugs';
-const COLLECTIONS_STORAGE_KEY = 'agora-collection-members';
-const COLLECTIONS_LIST_STORAGE_KEY = 'agora-collections';
+import {
+    BOOKMARKS_STORAGE_KEY,
+    COLLECTIONS_LIST_STORAGE_KEY,
+    COLLECTIONS_STORAGE_KEY,
+    readStoredJson,
+    writeStoredJson,
+} from '@/lib/appStorage';
+import {
+    getPageBookmarkResourceSlugs,
+    getUserNoteResourceSlugs,
+} from '@/lib/readerStorage';
 
 const COLLECTION_SECTION_PREFIX = 'collection:';
 
@@ -29,41 +36,28 @@ const DEFAULT_COLLECTION_MEMBERS = {
 };
 
 function loadBookmarkSlugs() {
-    try {
-        const stored = localStorage.getItem(BOOKMARKS_STORAGE_KEY);
+    const slugs = readStoredJson(BOOKMARKS_STORAGE_KEY, null);
 
-        if (stored) {
-            const slugs = JSON.parse(stored);
-
-            if (Array.isArray(slugs)) {
-                return new Set(slugs);
-            }
-        }
-    } catch {
-        // Ignore malformed storage.
+    if (Array.isArray(slugs)) {
+        return new Set(slugs);
     }
 
     return new Set(DEFAULT_BOOKMARKS);
 }
 
 function loadCollectionMembers() {
-    try {
-        const stored = localStorage.getItem(COLLECTIONS_STORAGE_KEY);
+    const parsed = readStoredJson(COLLECTIONS_STORAGE_KEY, null);
 
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            const members = {};
+    if (parsed && typeof parsed === 'object') {
+        const members = {};
 
-            for (const [collectionId, slugs] of Object.entries(parsed)) {
-                if (Array.isArray(slugs)) {
-                    members[collectionId] = new Set(slugs);
-                }
+        for (const [collectionId, slugs] of Object.entries(parsed)) {
+            if (Array.isArray(slugs)) {
+                members[collectionId] = new Set(slugs);
             }
-
-            return members;
         }
-    } catch {
-        // Ignore malformed storage.
+
+        return members;
     }
 
     return Object.fromEntries(
@@ -72,44 +66,37 @@ function loadCollectionMembers() {
 }
 
 function persistBookmarkSlugs(slugs) {
-    localStorage.setItem(BOOKMARKS_STORAGE_KEY, JSON.stringify([...slugs]));
+    writeStoredJson(BOOKMARKS_STORAGE_KEY, [...slugs]);
 }
 
 function loadCollections() {
-    try {
-        const stored = localStorage.getItem(COLLECTIONS_LIST_STORAGE_KEY);
+    const parsed = readStoredJson(COLLECTIONS_LIST_STORAGE_KEY, null);
 
-        if (stored) {
-            const parsed = JSON.parse(stored);
-
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                return parsed.map((collection) => ({
-                    id: collection.id,
-                    name: collection.name,
-                    count: 0,
-                }));
-            }
-        }
-    } catch {
-        // Ignore malformed storage.
+    if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((collection) => ({
+            id: collection.id,
+            name: collection.name,
+            count: 0,
+        }));
     }
 
     return DEFAULT_COLLECTIONS.map((collection) => ({ ...collection }));
 }
 
 function persistCollections(collections) {
-    localStorage.setItem(
+    writeStoredJson(
         COLLECTIONS_LIST_STORAGE_KEY,
-        JSON.stringify(collections.map(({ id, name }) => ({ id, name }))),
+        collections.map(({ id, name }) => ({ id, name })),
     );
 }
 
 function persistCollectionMembers(members) {
-    const payload = Object.fromEntries(
-        Object.entries(members).map(([id, slugs]) => [id, [...slugs]]),
+    writeStoredJson(
+        COLLECTIONS_STORAGE_KEY,
+        Object.fromEntries(
+            Object.entries(members).map(([id, slugs]) => [id, [...slugs]]),
+        ),
     );
-
-    localStorage.setItem(COLLECTIONS_STORAGE_KEY, JSON.stringify(payload));
 }
 
 const state = reactive({
@@ -117,19 +104,15 @@ const state = reactive({
     activeSection: 'offline',
     counts: {
         offline: 0,
-        allResources: 10,
-        notes: 3,
+        allResources: 0,
+        notes: 0,
         bookmarks: 0,
     },
     collections: loadCollections(),
     downloadedSlugs: new Set(),
     bookmarkSlugs: loadBookmarkSlugs(),
     collectionMembers: loadCollectionMembers(),
-    noteSlugs: new Set([
-        'dost-gia-monitoring-and-evaluation-manual',
-        'extension-project-implementation-guide',
-        'uplb-research-ethics-review-protocol',
-    ]),
+    noteSlugs: new Set(),
     recentSlugs: [
         'introduction-to-uplb-ovcre-services',
         'technology-transfer-and-commercialization-primer',
@@ -138,9 +121,18 @@ const state = reactive({
     ],
 });
 
+function syncReaderDerivedCounts() {
+    const pageBookmarkSlugs = getPageBookmarkResourceSlugs();
+    const noteSlugs = getUserNoteResourceSlugs();
+
+    state.noteSlugs = noteSlugs;
+    state.counts.notes = noteSlugs.size;
+    state.counts.bookmarks = new Set([...state.bookmarkSlugs, ...pageBookmarkSlugs]).size;
+}
+
 function updateCounts() {
     state.counts.offline = state.downloadedSlugs.size;
-    state.counts.bookmarks = state.bookmarkSlugs.size;
+    syncReaderDerivedCounts();
 
     for (const collection of state.collections) {
         const members = state.collectionMembers[String(collection.id)] ?? new Set();
@@ -177,6 +169,33 @@ export function useLibrary() {
 
     function isCollectionActive(collectionId) {
         return state.activeSection === collectionSectionId(collectionId);
+    }
+
+    function setAllResourcesCount(count) {
+        state.counts.allResources = Math.max(0, Number(count) || 0);
+    }
+
+    function refreshReaderCounts() {
+        state.bookmarkSlugs = loadBookmarkSlugs();
+        syncReaderDerivedCounts();
+    }
+
+    function reloadFromStorage() {
+        state.bookmarkSlugs = loadBookmarkSlugs();
+        state.collections = loadCollections();
+        state.collectionMembers = loadCollectionMembers();
+        updateCounts();
+    }
+
+    function markResourceBookmarked(slug) {
+        if (! slug || state.bookmarkSlugs.has(slug)) {
+            updateCounts();
+            return;
+        }
+
+        state.bookmarkSlugs.add(slug);
+        persistBookmarkSlugs(state.bookmarkSlugs);
+        updateCounts();
     }
 
     function setActiveSection(id) {
@@ -312,11 +331,17 @@ export function useLibrary() {
         }
 
         if (section === 'bookmarks') {
-            return resources.filter((r) => state.bookmarkSlugs.has(r.slug));
+            const pageBookmarkSlugs = getPageBookmarkResourceSlugs();
+
+            return resources.filter((resource) => (
+                state.bookmarkSlugs.has(resource.slug) || pageBookmarkSlugs.has(resource.slug)
+            ));
         }
 
         if (section === 'notes') {
-            return resources.filter((r) => state.noteSlugs.has(r.slug));
+            const noteSlugs = getUserNoteResourceSlugs();
+
+            return resources.filter((resource) => noteSlugs.has(resource.slug));
         }
 
         if (section === 'recent') {
@@ -357,5 +382,9 @@ export function useLibrary() {
         isBookmarked,
         isInCollection,
         toggleCollectionMembership,
+        setAllResourcesCount,
+        refreshReaderCounts,
+        reloadFromStorage,
+        markResourceBookmarked,
     };
 }

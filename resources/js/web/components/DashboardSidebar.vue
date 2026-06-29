@@ -90,6 +90,24 @@
                 <IconDocument class="web-nav-link-icon h-5 w-5 shrink-0" />
                 <span v-show="!collapsed" class="truncate">Drafts</span>
             </RouterLink>
+
+            <template v-if="adminNav.length">
+                <p v-show="!collapsed" class="web-nav-section mt-5">Administration</p>
+
+                <RouterLink
+                    v-for="item in adminNav"
+                    :key="item.id"
+                    :to="item.to"
+                    active-class=""
+                    exact-active-class=""
+                    class="web-nav-link"
+                    :class="{ 'web-nav-link--active': activeNavKey === item.id, 'web-nav-link--collapsed': collapsed }"
+                    :title="collapsed ? item.label : undefined"
+                >
+                    <component :is="item.icon" class="web-nav-link-icon h-5 w-5 shrink-0" />
+                    <span v-show="!collapsed" class="truncate">{{ item.label }}</span>
+                </RouterLink>
+            </template>
         </nav>
 
         <div class="border-app shrink-0 border-t p-2" :class="collapsed ? 'px-2' : 'p-3'">
@@ -131,19 +149,42 @@ import IconDocument from '@/components/icons/IconDocument.vue';
 import IconExternalLink from '@/components/icons/IconExternalLink.vue';
 import IconLogout from '@/components/icons/IconLogout.vue';
 import IconPlus from '@/components/icons/IconPlus.vue';
+import IconUser from '@/components/icons/IconUser.vue';
+import IconLibrary from '@/components/icons/IconLibrary.vue';
 import { useAuthStore } from '../stores/auth';
 import { useAuthorSidebar } from '../composables/useAuthorSidebar';
+import { useAdminAccess } from '../composables/useAdminAccess';
 import WebThemeToggle from './WebThemeToggle.vue';
 
 const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 const { collapsed, toggle } = useAuthorSidebar();
+const { canManageUsers, canManageCategories, canManageResources } = useAdminAccess();
 
-const mainNav = [
+const mainNav = computed(() => [
     { id: 'dashboard', to: '/author', label: 'Dashboard', icon: IconChartBar },
-    { id: 'resources', to: '/author/resources', label: 'My Resources', icon: IconBooks },
-];
+    {
+        id: 'resources',
+        to: '/author/resources',
+        label: canManageResources.value ? 'All Resources' : 'My Resources',
+        icon: IconBooks,
+    },
+]);
+
+const adminNav = computed(() => {
+    const items = [];
+
+    if (canManageUsers.value) {
+        items.push({ id: 'users', to: '/author/admin/users', label: 'Users', icon: IconUser });
+    }
+
+    if (canManageCategories.value) {
+        items.push({ id: 'categories', to: '/author/admin/categories', label: 'Categories', icon: IconLibrary });
+    }
+
+    return items;
+});
 
 const initials = computed(() => {
     const parts = (auth.user?.name ?? 'U').split(' ');
@@ -168,8 +209,16 @@ const activeNavKey = computed(() => {
         return 'drafts';
     }
 
-    if (path === '/author/resources' || path.startsWith('/author/resources/')) {
+    if (path === '/author/resources' || (path.startsWith('/author/resources/') && !path.startsWith('/author/resources/new'))) {
         return 'resources';
+    }
+
+    if (path.startsWith('/author/admin/users')) {
+        return 'users';
+    }
+
+    if (path.startsWith('/author/admin/categories')) {
+        return 'categories';
     }
 
     if (path === '/author') {

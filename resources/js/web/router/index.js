@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { useAdminAccess } from '../composables/useAdminAccess';
 
 const routes = [
     {
@@ -34,6 +35,44 @@ const routes = [
                 component: () => import('../pages/ResourceFormPage.vue'),
                 props: true,
             },
+            {
+                path: 'admin/users',
+                name: 'web.admin.users',
+                component: () => import('../pages/UsersPage.vue'),
+                meta: { requiresPermission: 'can_manage_users' },
+            },
+            {
+                path: 'admin/users/new',
+                name: 'web.admin.users.create',
+                component: () => import('../pages/UserFormPage.vue'),
+                meta: { requiresPermission: 'can_manage_users' },
+            },
+            {
+                path: 'admin/users/:id/edit',
+                name: 'web.admin.users.edit',
+                component: () => import('../pages/UserFormPage.vue'),
+                props: true,
+                meta: { requiresPermission: 'can_manage_users' },
+            },
+            {
+                path: 'admin/categories',
+                name: 'web.admin.categories',
+                component: () => import('../pages/CategoriesPage.vue'),
+                meta: { requiresPermission: 'can_manage_categories' },
+            },
+            {
+                path: 'admin/categories/new',
+                name: 'web.admin.categories.create',
+                component: () => import('../pages/CategoryFormPage.vue'),
+                meta: { requiresPermission: 'can_manage_categories' },
+            },
+            {
+                path: 'admin/categories/:id/edit',
+                name: 'web.admin.categories.edit',
+                component: () => import('../pages/CategoryFormPage.vue'),
+                props: true,
+                meta: { requiresPermission: 'can_manage_categories' },
+            },
         ],
     },
     {
@@ -60,6 +99,19 @@ router.beforeEach(async (to) => {
 
     if (to.meta.guest && auth.isAuthenticated) {
         return { name: 'web.dashboard' };
+    }
+
+    if (to.meta.requiresPermission) {
+        const { canManageUsers, canManageCategories } = useAdminAccess();
+        const permission = to.meta.requiresPermission;
+
+        if (permission === 'can_manage_users' && !canManageUsers.value) {
+            return { name: 'web.dashboard' };
+        }
+
+        if (permission === 'can_manage_categories' && !canManageCategories.value) {
+            return { name: 'web.dashboard' };
+        }
     }
 });
 
